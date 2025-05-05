@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { getWallets , deleteWallet } from '../../infrastructure/services/WalletService';
+import { getWallets, deleteWallet } from '../../infrastructure/services/WalletService';
 import WalletModal from '../components/WalletModal';
+import toast, { Toaster } from "react-hot-toast";
 
 export default function Wallets() {
   const [wallets, setWallets] = useState([]);
@@ -10,6 +11,10 @@ export default function Wallets() {
   useEffect(() => {
     setWallets(getWallets());
   }, []);
+
+  const refreshWallets = () => {
+    setWallets(getWallets());
+  };
 
   const handleAdd = () => {
     setWalletToEdit(null); 
@@ -23,11 +28,19 @@ export default function Wallets() {
 
   const handleDelete = (id) => {
     deleteWallet(id);
-    setWallets(getWallets());
+    refreshWallets();
+    toast.success("Wallet deleted");
+  };
+
+  const handleModalSuccess = (action) => {
+    refreshWallets();
+    toast.success(`Wallet ${action}`);
   };
 
   return (
     <div className="p-6 space-y-6">
+      <Toaster/>
+
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-800">Wallets</h1>
         <button
@@ -38,7 +51,6 @@ export default function Wallets() {
         </button>
       </div>
 
-      {/* Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mt-6">
         {wallets.map((wallet) => (
           <div
@@ -56,13 +68,13 @@ export default function Wallets() {
             <div className="flex justify-end gap-2 mt-2">
               <button
                 onClick={() => handleEdit(wallet)}
-                className="text-sm px-3 py-1 bg-yellow-400 text-white rounded hover:bg-yellow-500  cursor-pointer"
+                className="text-sm px-3 py-1 bg-yellow-400 text-white rounded hover:bg-yellow-500 cursor-pointer"
               >
                 Edit
               </button>
               <button
                 onClick={() => handleDelete(wallet.id)}
-                className="text-sm px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600  cursor-pointer"
+                className="text-sm px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 cursor-pointer"
               >
                 Delete
               </button>
@@ -71,12 +83,12 @@ export default function Wallets() {
         ))}
       </div>
 
-{/* Modal */}
       <WalletModal
         isOpen={isModalOpen}
         setIsOpen={setIsModalOpen}
         walletToEdit={walletToEdit}
         setWallets={setWallets}
+        onSuccess={handleModalSuccess}
       />
     </div>
   );

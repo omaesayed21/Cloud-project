@@ -3,7 +3,7 @@ import { Fragment, useState, useEffect } from 'react';
 import { addWallet , getWallets , updateWallet } from '../../infrastructure/services/WalletService';
 import { walletSchema } from '../hooks/useFormValidation';
 
-export default function WalletModal({ isOpen, setIsOpen, walletToEdit, setWallets }) {
+export default function WalletModal({ isOpen, setIsOpen, walletToEdit, setWallets , onSuccess }) {
 
   const [newName, setNewName] = useState('');
   const [newBalance, setNewBalance] = useState('');
@@ -44,8 +44,10 @@ export default function WalletModal({ isOpen, setIsOpen, walletToEdit, setWallet
   
         if (walletToEdit) {
           updateWallet({ ...walletToEdit, ...walletData });
+          onSuccess && onSuccess('updated');
         } else {
           addWallet(walletData);
+          onSuccess && onSuccess('added')
         }
   
         setWallets(getWallets());
@@ -59,6 +61,7 @@ export default function WalletModal({ isOpen, setIsOpen, walletToEdit, setWallet
         setErrors(formattedErrors);
       });
   }
+  
   
   return (
     <Transition appear show={isOpen} as={Fragment}>
