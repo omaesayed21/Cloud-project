@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { TransactionService } from "../../infrastructure/services/TransactionService";
 import { transactionSchema } from "../hooks/useFormValidation";
 import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/solid";
@@ -6,6 +6,8 @@ import toast, { Toaster } from "react-hot-toast";
 import { Formik, Field, Form, ErrorMessage } from "formik";
 
 export default function Transactions() {
+  const formikRef = useRef(null);
+
   const [txs, setTxs] = useState([]);
   const categories = ["Food", "Transport", "Bills", "Shopping", "Entertainment", "Other"];
   const [editId, setEditId] = useState(null);
@@ -30,9 +32,12 @@ export default function Transactions() {
         TransactionService.addTransaction(tx);
         toast.success("Transaction added");
       }
+     
       setTxs(TransactionService.getTransactions());
       setSubmitting(false);
-      setEditId(null);  // Reset editId after submit
+      setEditId(null); 
+      formikRef.current?.resetForm();
+
     } catch (err) {
       setErrors({ general: "An error occurred while saving the transaction." });
       toast.error("Transaction failed");
@@ -42,7 +47,16 @@ export default function Transactions() {
 
   const handleEdit = (tx) => {
     setEditId(tx.id);
+    if (formikRef.current) {
+      formikRef.current.setValues({
+        title: tx.title,
+        amount: tx.amount,
+        date: tx.date,
+        category: tx.category,
+      });
+    }
   };
+  
 
   const handleDelete = (id) => {
     TransactionService.deleteTransaction(id);
@@ -55,7 +69,8 @@ export default function Transactions() {
       <div className="max-w-3xl mx-auto bg-white p-6 rounded-xl shadow-md">
         <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">Manage Transactions</h1>
 
-        <Formik
+        <Formik   innerRef={(ref) => formikRef.current = ref}
+
           initialValues={{
             title: "",
             amount: "",
