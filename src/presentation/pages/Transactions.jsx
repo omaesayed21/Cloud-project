@@ -4,16 +4,18 @@ import { transactionSchema } from "../hooks/useFormValidation";
 import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/solid";
 import toast, { Toaster } from "react-hot-toast";
 import { Formik, Field, Form, ErrorMessage } from "formik";
+import { getWallets } from "../../infrastructure/services/WalletService";
 
 export default function Transactions() {
   const formikRef = useRef(null);
-
+  const [wallets, setWallets] = useState([]);
   const [txs, setTxs] = useState([]);
   const categories = ["Food", "Transport", "Bills", "Shopping", "Entertainment", "Other"];
   const [editId, setEditId] = useState(null);
 
   useEffect(() => {
     setTxs(TransactionService.getTransactions());
+    setWallets(getWallets());
   }, []);
 
   const handleSubmit = async (values, { setSubmitting, setErrors }) => {
@@ -22,6 +24,7 @@ export default function Transactions() {
       amount: parseFloat(values.amount),
       date: values.date,
       category: values.category,
+      walletId: values.walletId,
     };
 
     try {
@@ -53,6 +56,7 @@ export default function Transactions() {
         amount: tx.amount,
         date: tx.date,
         category: tx.category,
+        walletId: tx.walletId || "",
       });
     }
   };
@@ -76,6 +80,7 @@ export default function Transactions() {
             amount: "",
             date: "",
             category: "",
+            walletId: "",
           }}
           validationSchema={transactionSchema}
           onSubmit={handleSubmit}
@@ -135,7 +140,24 @@ export default function Transactions() {
                 </Field>
                 <ErrorMessage name="category" component="p" className="text-red-500 text-sm mt-1" />
               </div>
+                    <div>
+                      <label htmlFor=""  className="block text-sm font-medium mb-1"> Wallet</label>
+                      <Field
+                        name="walletId"
+                        as="select"
+                        value={values.walletId}
+                        onChange={handleChange}
+                        className={` w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500  ${errors.walletId && touched.walletId ? 'border-red-500' : 'border-gray-300 focus:ring focus:border-green-400'}`} >
 
+                      <option value="">-- Select a Wallet --</option>
+                        {wallets.map((wallet) => (
+                          <option key={wallet.id} value={wallet.id}>{wallet.name}</option>
+                        ))}
+
+                        </Field>
+                        <ErrorMessage name="walletId" component="p" className="text-red-500 text-sm mt-1" />
+
+                    </div>
               <button
                 type="submit"
                 disabled={isSubmitting}
@@ -157,8 +179,12 @@ export default function Transactions() {
             >
               <div>
                 <h3 className="font-semibold text-lg">{tx.title}</h3>
-                <p className="text-gray-600 text-sm">{tx.category} | {new Date(tx.date).toLocaleDateString()}</p>
-              </div>
+                <p className="text-gray-600 text-sm">
+                  {tx.category} | {new Date(tx.date).toLocaleDateString()}<br />
+                  Wallet: <span className="font-medium">
+                    {wallets.find((w) => w.id === tx.walletId)?.name || "N/A"}
+                  </span>
+                </p>              </div>
               <div className="flex items-center gap-4">
                 <span className="text-green-600 font-bold">${tx.amount}</span>
                 <button
