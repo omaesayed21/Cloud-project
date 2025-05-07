@@ -1,33 +1,32 @@
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment, useState, useEffect } from 'react';
-import { addWallet , getWallets , updateWallet } from '../../infrastructure/services/WalletService';
+import { addWallet, getWallets, updateWallet } from '../../infrastructure/services/WalletService';
 import { walletSchema } from '../hooks/useFormValidation';
 
-export default function WalletModal({ isOpen, setIsOpen, walletToEdit, setWallets , onSuccess }) {
-
+export default function WalletModal({ isOpen, setIsOpen, walletToEdit, onSuccess }) {
   const [newName, setNewName] = useState('');
   const [newBalance, setNewBalance] = useState('');
   const [newType, setNewType] = useState('Cash');
+  const [newCurrency, setNewCurrency] = useState('EGP');
+  const [newNotes, setNewNotes] = useState('');
   const [errors, setErrors] = useState({});
-
 
   useEffect(() => {
     if (walletToEdit) {
       setNewName(walletToEdit.name);
       setNewBalance(walletToEdit.balance);
       setNewType(walletToEdit.type);
+      setNewCurrency(walletToEdit.currency || 'EGP');
+      setNewNotes(walletToEdit.notes || '');
     } else {
       setNewName('');
       setNewBalance('');
       setNewType('Cash');
+      setNewCurrency('EGP');
+      setNewNotes('');
     }
   }, [walletToEdit]);
 
-
-  
-//   setErrors(errors);
-//   if (Object.keys(errors).length > 0) return;
-  
   function closeModal() {
     setIsOpen(false);
   }
@@ -40,17 +39,18 @@ export default function WalletModal({ isOpen, setIsOpen, walletToEdit, setWallet
           name: newName,
           balance: parseFloat(newBalance),
           type: newType,
+          currency: newCurrency,
+          notes: newNotes,
         };
-  
+
         if (walletToEdit) {
           updateWallet({ ...walletToEdit, ...walletData });
           onSuccess && onSuccess('updated');
         } else {
           addWallet(walletData);
-          onSuccess && onSuccess('added')
+          onSuccess && onSuccess('added');
         }
-  
-        setWallets(getWallets());
+
         setIsOpen(false);
       })
       .catch((validationError) => {
@@ -61,8 +61,7 @@ export default function WalletModal({ isOpen, setIsOpen, walletToEdit, setWallet
         setErrors(formattedErrors);
       });
   }
-  
-  
+
   return (
     <Transition appear show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-10" onClose={closeModal}>
@@ -100,9 +99,10 @@ export default function WalletModal({ isOpen, setIsOpen, walletToEdit, setWallet
                     <label className="block text-sm font-medium text-gray-700 mb-1">Wallet Name</label>
                     <input
                       type="text"
-                      className={`block w-full border border-gray-300 p-2 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      className={`block w-full border p-2 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                         errors.name ? 'border-red-500' : 'border-gray-300'
-                      }`}                      placeholder="Enter wallet name"
+                      }`}
+                      placeholder="Enter wallet name"
                       value={newName}
                       onChange={(e) => setNewName(e.target.value)}
                     />
@@ -113,7 +113,7 @@ export default function WalletModal({ isOpen, setIsOpen, walletToEdit, setWallet
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Wallet Type</label>
                     <select
-                      className="block w-full border border-gray-300 p-2 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="block w-full border p-2 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                       value={newType}
                       onChange={(e) => setNewType(e.target.value)}
                     >
@@ -128,7 +128,7 @@ export default function WalletModal({ isOpen, setIsOpen, walletToEdit, setWallet
                     <label className="block text-sm font-medium text-gray-700 mb-1">Balance</label>
                     <input
                       type="text"
-                      className={`block w-full border border-gray-300 p-2 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      className={`block w-full border p-2 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                         errors.balance ? 'border-red-500' : 'border-gray-300'
                       }`}
                       placeholder="Enter balance"
@@ -137,20 +137,42 @@ export default function WalletModal({ isOpen, setIsOpen, walletToEdit, setWallet
                     />
                     {errors.balance && <p className="text-red-500 text-xs mt-1">{errors.balance}</p>}
                   </div>
+
+                  {/* Currency */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Currency</label>
+                    <input
+                      type="text"
+                      className="block w-full border p-2 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      value={newCurrency}
+                      onChange={(e) => setNewCurrency(e.target.value)}
+                    />
+                  </div>
+
+                  {/* Notes */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                    <textarea
+                      rows="2"
+                      className="block w-full border p-2 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      value={newNotes}
+                      onChange={(e) => setNewNotes(e.target.value)}
+                    ></textarea>
+                  </div>
                 </div>
 
                 {/* Buttons */}
                 <div className="mt-6 flex justify-end gap-4">
                   <button
                     type="button"
-                    className=" cursor-pointer  inline-flex justify-center rounded-md bg-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                    className="cursor-pointer inline-flex justify-center rounded-md bg-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500"
                     onClick={closeModal}
                   >
                     Cancel
                   </button>
                   <button
                     type="button"
-                    className=" cursor-pointer inline-flex justify-center rounded-md bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="cursor-pointer inline-flex justify-center rounded-md bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     onClick={handleSave}
                   >
                     {walletToEdit ? 'Save Changes' : 'Add Wallet'}

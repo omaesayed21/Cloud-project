@@ -138,7 +138,7 @@ export default function Budget() {
   // Calculate totals for summary cards
   const calculateTotal = (type) => {
     return budgets
-      .filter(b => type === 'all' || b.type === type)
+      .filter(b => type === 'all' || b.category_type === type)
       .reduce((total, budget) => total + Number(budget.amount), 0);
   };
 
@@ -330,13 +330,13 @@ export default function Budget() {
                     <div className="flex justify-between items-start">
                       <h3 className="font-bold text-lg text-gray-800">{budget.category_name}</h3>
                       <span className={`px-2 py-1 text-xs rounded ${
-                        budget.type === 'income' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        budget.category_type === 'income' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                       }`}>
-                        {budget.type === 'income' ? 'Income' : 'Expense'}
+                        {budget.category_type === 'income' ? 'Income' : 'Expense'}
                       </span>
                     </div>
                     
-                    <p className="text-md font-bold mt-2 text-gray-500"> Amount: {budget.amount} EGP</p>
+                    <p className="text-md font-bold mt-2 text-gray-500"> {budget.amount} EGP</p>
                     
                     <div className="mt-3 text-sm text-gray-600">
                       <div className="flex items-center mb-1">
@@ -348,7 +348,9 @@ export default function Budget() {
                         <span>To: {budget.end_date}</span>
                       </div>
                     </div>
-                    
+                    {/* <div>
+                      {budget.category_color}
+                    </div> */}
                     <div className="mt-4 flex justify-end gap-2">
                       <button 
                         onClick={() => handleEditBudget(budget)} 

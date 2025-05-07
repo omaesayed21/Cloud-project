@@ -1,24 +1,52 @@
 
-let wallets = [
-    { id: 1, name: 'Bank', type: 'Bank', balance: 10000 },
-    { id: 2, name: 'Cash', type: 'Cash', balance: 3500 },
-    { id: 3, name: 'Card', type: 'Card', balance: 9000 },
-  ];
-  
-  export function getWallets() {
-    return [...wallets];
-  }
-  
-  export function addWallet(wallet) {
-    wallet.id = Date.now();
-    wallets.push(wallet);
-  }
-  
-  export function deleteWallet(id) {
-    wallets = wallets.filter(w => w.id !== id);
-  }
-  
-  export function updateWallet(updatedWallet) {
-    wallets = wallets.map(w => (w.id === updatedWallet.id ? updatedWallet : w));
-  }
-  
+const API_URL = 'X';
+
+const getToken = () => {
+  return localStorage.getItem('token');
+};
+
+export async function getWallets() {
+  const res = await fetch(API_URL, {
+    headers: {
+      'Authorization': `Bearer ${getToken()}`
+    }
+  });
+  if (!res.ok) throw new Error('Failed to fetch wallets');
+  return await res.json();
+}
+
+export async function addWallet(wallet) {
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getToken()}`
+    },
+    body: JSON.stringify(wallet)
+  });
+  if (!res.ok) throw new Error('Failed to add wallet');
+  return await res.json();
+}
+
+export async function updateWallet(wallet) {
+  const res = await fetch(`${API_URL}/${wallet.id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getToken()}`
+    },
+    body: JSON.stringify(wallet)
+  });
+  if (!res.ok) throw new Error('Failed to update wallet');
+  return await res.json();
+}
+
+export async function deleteWallet(id) {
+  const res = await fetch(`${API_URL}/${id}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${getToken()}`
+    }
+  });
+  if (!res.ok) throw new Error('Failed to delete wallet');
+}
