@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { PlusCircle, Edit2, Trash2, Calendar, DollarSign, Tag, RefreshCw } from "lucide-react";
+import { getBudgets , createBudget , updateBudget , deleteBudget } from "../../infrastructure/services/BudgetService";
+import axios from "axios";
 
 export default function Budget() {
   const [budgets, setBudgets] = useState([]);
@@ -18,55 +19,42 @@ export default function Budget() {
   const [editMode, setEditMode] = useState(false);
   const [editBudget, setEditBudget] = useState(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [forecast, setForecast] = useState(null);
   const navigate = useNavigate();
 
-  // Fetch budgets when the component loads - keeping original API connection
-  
+  const token = localStorage.getItem("token");
+
   useEffect(() => {
-    const token = localStorage.getItem("token");
     if (!token) {
       navigate("/login");
       return;
     }
 
-    axios.get("http://127.0.0.1:8000/api/budgets", {
+    getBudgets(token)
+      .then(setBudgets)
+      .catch(() => setError("Error loading data"))
+      .finally(() => setLoading(false));
+
+    axios.get("http://127.0.0.1:8000/api/forecast", {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     })
-    .then((response) => {
-      setBudgets(response.data);
-      setLoading(false);
-    })
-    .catch((error) => {
-      setError("Error loading data");
-      setLoading(false);
-    });
-  }, [navigate]);
+    .then((res) => setForecast(res.data))
+    .catch(() => setForecast(null));
+  }, [navigate, token]);
 
-  // Create a new budget
   const handleCreateBudget = () => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/login");
-      return;
-    }
+    if (!token) return navigate("/login");
 
-    axios.post("http://127.0.0.1:8000/api/budgets", newBudget, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-    .then((response) => {
-      setBudgets([...budgets, response.data]);
-      resetForm();
-    })
-    .catch((error) => {
-      setError("Error creating budget");
-    });
+    createBudget(newBudget, token)
+      .then((data) => {
+        setBudgets([...budgets, data]);
+        resetForm();
+      })
+      .catch(() => setError("Error creating budget"));
   };
 
-  // Set budget to edit mode
   const handleEditBudget = (budget) => {
     setEditMode(true);
     setEditBudget(budget);
@@ -75,51 +63,25 @@ export default function Budget() {
     window.scrollTo(0, 0);
   };
 
-  // Update the budget
   const handleUpdateBudget = () => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/login");
-      return;
-    }
+    if (!token) return navigate("/login");
 
-    axios.put(`http://127.0.0.1:8000/api/budgets/${editBudget.id}`, newBudget, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-    .then((response) => {
-      setBudgets(
-        budgets.map((b) =>
-          b.id === editBudget.id ? response.data : b
-        )
-      );
-      resetForm();
-    })
-    .catch((error) => {
-      setError("Error updating budget");
-    });
+    updateBudget(editBudget.id, newBudget, token)
+      .then((data) => {
+        setBudgets(budgets.map((b) => (b.id === editBudget.id ? data : b)));
+        resetForm();
+      })
+      .catch(() => setError("Error updating budget"));
   };
 
-  // Delete a budget
   const handleDeleteBudget = (id) => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/login");
-      return;
-    }
+    if (!token) return navigate("/login");
 
-    axios.delete(`http://127.0.0.1:8000/api/budgets/${id}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-    .then(() => {
-      setBudgets(budgets.filter((b) => b.id !== id));
-    })
-    .catch((error) => {
-      setError("Error deleting budget");
-    });
+    deleteBudget(id, token)
+      .then(() => {
+        setBudgets(budgets.filter((b) => b.id !== id));
+      })
+      .catch(() => setError("Error deleting budget"));
   };
 
   const resetForm = () => {
@@ -136,39 +98,11 @@ export default function Budget() {
     });
   };
 
-  // Calculate totals for summary cards
   const calculateTotal = (type) => {
     return budgets
-      .filter(b => type === 'all' || b.category_type === type)
-      .reduce((total, budget) => total + Number(budget.amount), 0);
+      .filter((b) => type === 'all' || b.category_type === type)
+      .reduce((total, b) => total + Number(b.amount), 0);
   };
-
-
-// Forecasting
-
-const [forecast, setForecast] = useState(null);
-
-useEffect(() => {
-  const token = localStorage.getItem("token");
-  if (!token) {
-    navigate("/login");
-    return;
-  }
-
-  axios.get("http://127.0.0.1:8000/api/forecast", {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  })
-  .then((response) => {
-    setForecast(response.data);
-  })
-  .catch(() => {
-    setForecast(null);
-  });
-}, [navigate]);
-
-
 
   if (loading) {
     return (
@@ -180,7 +114,7 @@ useEffect(() => {
       </div>
     );
   }
-  
+
   if (error) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -401,7 +335,7 @@ useEffect(() => {
           )}
         </div>
       </div>
-      {forecast ? (
+{/* {forecast ? (
   <div className="bg-white rounded-xl shadow-lg p-6 mt-6">
     <h2 className="text-xl font-bold mb-4 text-gray-800 border-b pb-2">Forecast</h2>
 
@@ -424,7 +358,7 @@ useEffect(() => {
   <div className="bg-white rounded-xl shadow-lg p-6 mt-6">
     <p className="text-center text-gray-500">No forecast data available</p>
   </div>
-)}
+)} */}
 
 
     </div>

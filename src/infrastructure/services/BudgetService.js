@@ -1,25 +1,57 @@
+// src/services/budgetServices.js
+import axios from 'axios';
 
-const STORAGE_KEY = 'budgets';
+const API_URL = 'http://127.0.0.1:8000/api/budgets';
 
-export function getBudgets() {
-  return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-}
+const getBudgets = async (token) => {
+  try {
+    const response = await axios.get(API_URL, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error('Error loading budgets');
+  }
+};
 
-export function addBudget(budget) {
-  const budgets = getBudgets();
-  const newBudget = { ...budget, id: Date.now() };
-  budgets.push(newBudget);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(budgets));
-}
+const createBudget = async (newBudget, token) => {
+  try {
+    const response = await axios.post(API_URL, newBudget, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error('Error creating budget');
+  }
+};
 
-export function updateBudget(updatedBudget) {
-  const budgets = getBudgets().map((budget) =>
-    budget.id === updatedBudget.id ? updatedBudget : budget
-  );
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(budgets));
-}
+const updateBudget = async (id, updatedBudget, token) => {
+  try {
+    const response = await axios.put(`${API_URL}/${id}`, updatedBudget, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error('Error updating budget');
+  }
+};
 
-export function deleteBudget(id) {
-  const budgets = getBudgets().filter((budget) => budget.id !== id);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(budgets));
-}
+const deleteBudget = async (id, token) => {
+  try {
+    await axios.delete(`${API_URL}/${id}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  } catch (error) {
+    throw new Error('Error deleting budget');
+  }
+};
+
+export { getBudgets, createBudget, updateBudget, deleteBudget };
