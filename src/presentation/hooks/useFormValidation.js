@@ -55,4 +55,11 @@ export const walletSchema = yup.object().shape({
   type: yup.string().required("Type is required"),
 });
 
-
+export const budgetSchema = yup.object().shape({
+  category: yup.string().required("Category is required"),
+  limit: yup
+    .number()
+    .typeError("Limit must be a number")
+    .min(0, "Limit must be a positive number")
+    .required("Limit is required"),
+})

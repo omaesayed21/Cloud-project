@@ -1,15 +1,14 @@
 import { useState } from "react";
 import { loginSchema } from "../hooks/useFormValidation";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
-import { AuthService } from "../../infrastructure/services/AuthService";
-import { Link } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import toast, { Toaster } from "react-hot-toast";
 import { Formik, Field, Form, ErrorMessage } from "formik";
+import axios from "axios";  // استيراد axios
 
 export default function Login() {
   const navigate = useNavigate();
-  const [showPassword, setShowPassword] = useState(false);  // تعريف المتغير هنا
+  const [showPassword, setShowPassword] = useState(false);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 to-purple-200">
@@ -18,10 +17,14 @@ export default function Login() {
         validationSchema={loginSchema}
         onSubmit={async (values, { setSubmitting, setErrors }) => {
           try {
-            await AuthService.login({
+            // استبدال apiFetch بـ axios مباشرة
+            const response = await axios.post("http://127.0.0.1:8000/api/login", {
               email: values.email,
               password: values.password,
             });
+
+            // تخزين التوكن في localStorage
+            localStorage.setItem("token", response.data.token);
 
             toast.success("Login successful!", {
               style: {
@@ -31,9 +34,12 @@ export default function Login() {
               },
             });
 
-            navigate("/dashboard");
+            setTimeout(() => {
+              navigate("/dashboard");
+            }, 800);
           } catch (err) {
-            toast.error("Login failed: " + err.message, {
+            // التعامل مع الخطأ
+            toast.error("Login failed: " + err.response?.data?.message || err.message, {
               style: {
                 borderRadius: "8px",
                 background: "#fff1f2",
@@ -47,11 +53,10 @@ export default function Login() {
           }
         }}
       >
-        {({ isSubmitting, values, handleChange, handleBlur, errors, touched }) => (
+        {({ isSubmitting, errors, touched }) => (
           <Form className="bg-white p-8 rounded-xl shadow-lg w-full max-w-sm space-y-4">
-            <h2 className="text-xl font-bold  text-gray-700 mb-4">Login Now .....</h2>
+            <h2 className="text-xl font-bold text-gray-700 mb-4">Login Now .....</h2>
 
-            {/* Email */}
             <div>
               <label className="block mb-1 text-sm font-medium text-gray-600">Email</label>
               <Field
@@ -65,11 +70,10 @@ export default function Login() {
               <ErrorMessage name="email" component="p" className="text-red-500 text-sm mt-1" />
             </div>
 
-            {/* Password */}
             <div className="relative">
               <label className="block mb-1 text-sm font-medium text-gray-600">Password</label>
               <Field
-                type={showPassword ? "text" : "password"}  // استخدام showPassword هنا
+                type={showPassword ? "text" : "password"}
                 name="password"
                 placeholder="Enter password"
                 className={`w-full p-3 border rounded pr-10 focus:outline-none ${
@@ -78,7 +82,7 @@ export default function Login() {
               />
               <div
                 className="absolute right-3 top-10 cursor-pointer text-gray-500"
-                onClick={() => setShowPassword(!showPassword)}  // تغيير حالته هنا
+                onClick={() => setShowPassword(!showPassword)}
               >
                 {showPassword ? <EyeIcon className="h-5 w-5" /> : <EyeSlashIcon className="h-5 w-5" />}
               </div>

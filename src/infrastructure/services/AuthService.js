@@ -49,3 +49,8 @@ export const AuthService = {
     return !!localStorage.getItem(CURRENT_USER_KEY);
   }
 };
+
+
+export function logout() {
+  localStorage.removeItem("token");
+}

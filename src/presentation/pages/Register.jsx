@@ -1,11 +1,11 @@
-import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
-import { AuthService } from "../../infrastructure/services/AuthService";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import toast, { Toaster } from "react-hot-toast";
-import { registerSchema } from "../hooks/useFormValidation";
 import { Formik } from "formik";
 import { useState } from "react";
-
+import { registerSchema } from "../hooks/useFormValidation";
+import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
+import { Link } from "react-router-dom";
+import { apiFetch } from "../../infrastructure/services/apifetch";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -23,31 +23,27 @@ export default function Register() {
           confirm: "",
         }}
         validationSchema={registerSchema}
-        onSubmit={async (values, { setSubmitting, setErrors }) => {
+        onSubmit={async (values, { setSubmitting }) => {
           try {
-            await AuthService.register({
-              name: values.name,
-              address: values.address,
-              email: values.email,
-              password: values.password,
+            const data = await apiFetch("http://127.0.0.1:8000/api/register", {
+              method: "POST",
+              body: JSON.stringify({
+                name: values.name,
+                address: values.address,
+                email: values.email,
+                password: values.password,
+                password_confirmation: values.confirm,
+              }),
             });
 
-            toast("Registered successfully!", {
-              icon: "👏",
-              style: {
-                borderRadius: "10px",
-                background: "#333",
-                color: "#fff",
-              },
-            });
+            localStorage.setItem("token", data.token);
+            toast.success(data.message || "Registered successfully");
 
-            navigate("/login");
+            setTimeout(() => {
+              navigate("/Login");
+            }, 800);
           } catch (err) {
-            if (err.response && err.response.data && err.response.data.message) {
-              toast.error(err.response.data.message);
-            } else {
-              toast.error("Something went wrong");
-            }
+            toast.error(err.message || "Registration failed");
           } finally {
             setSubmitting(false);
           }
@@ -60,7 +56,6 @@ export default function Register() {
           >
             <h2 className="text-xl font-bold text-gray-700">Register Now ...</h2>
 
-            {/* Name */}
             <div>
               <label className="block mb-1 text-sm text-gray-600">Name</label>
               <input
@@ -79,7 +74,6 @@ export default function Register() {
               )}
             </div>
 
-            {/* Address */}
             <div>
               <label className="block mb-1 text-sm text-gray-600">Address</label>
               <input
@@ -98,7 +92,6 @@ export default function Register() {
               )}
             </div>
 
-            {/* Email */}
             <div>
               <label className="block mb-1 text-sm text-gray-600">Email</label>
               <input
@@ -117,7 +110,6 @@ export default function Register() {
               )}
             </div>
 
-            {/* Password */}
             <div className="relative">
               <label className="block mb-1 text-sm text-gray-600">Password</label>
               <input
@@ -146,7 +138,6 @@ export default function Register() {
               )}
             </div>
 
-            {/* Confirm Password */}
             <div className="relative">
               <label className="block mb-1 text-sm text-gray-600">Confirm Password</label>
               <input

@@ -9,7 +9,7 @@ export default function Navbar() {
     navigate("/login")
   }
 
-  if (location.pathname === "/login" || location.pathname === "/Register") {
+  if (location.pathname === "/Login" || location.pathname === "/Register" || location.pathname === "/"  ||  location.pathname === "/login"   ) {
     return null  
   }
 
@@ -22,7 +22,7 @@ export default function Navbar() {
           <li><Link to="/dashboard" className="hover:text-green-600">Dashboard</Link></li>
           <li><Link to="/wallets" className="hover:text-green-600">Wallets</Link></li>
           <li><Link to="/Trnsactions" className="hover:text-green-600">Transactions</Link></li>
-          <li><Link to="/budget" className="hover:text-green-600">Budget</Link></li>
+          <li><Link to="/Budget" className="hover:text-green-600">Budget</Link></li>
           <li><Link to="/reports" className="hover:text-green-600">Reports</Link></li>
         </ul>
 
