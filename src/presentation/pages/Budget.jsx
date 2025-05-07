@@ -21,6 +21,7 @@ export default function Budget() {
   const navigate = useNavigate();
 
   // Fetch budgets when the component loads - keeping original API connection
+  
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -142,6 +143,33 @@ export default function Budget() {
       .reduce((total, budget) => total + Number(budget.amount), 0);
   };
 
+
+// Forecasting
+
+const [forecast, setForecast] = useState(null);
+
+useEffect(() => {
+  const token = localStorage.getItem("token");
+  if (!token) {
+    navigate("/login");
+    return;
+  }
+
+  axios.get("http://127.0.0.1:8000/api/forecast", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+  .then((response) => {
+    setForecast(response.data);
+  })
+  .catch(() => {
+    setForecast(null);
+  });
+}, [navigate]);
+
+
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -195,6 +223,7 @@ export default function Budget() {
             </div>
           </div>
         </div>
+  
 
         {/* Form for creating or editing budget */}
         {isFormOpen && (
@@ -372,6 +401,32 @@ export default function Budget() {
           )}
         </div>
       </div>
+      {forecast ? (
+  <div className="bg-white rounded-xl shadow-lg p-6 mt-6">
+    <h2 className="text-xl font-bold mb-4 text-gray-800 border-b pb-2">Forecast</h2>
+
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 p-4 rounded">
+        <p className="text-sm">Date</p>
+        <p className="text-lg font-bold">{forecast.date}</p>
+      </div>
+      <div className="bg-blue-100 border-l-4 border-blue-500 text-blue-800 p-4 rounded">
+        <p className="text-sm">Projected Balance</p>
+        <p className="text-lg font-bold">{forecast.projected_balance} EGP</p>
+      </div>
+      <div className="bg-gray-100 border-l-4 border-gray-500 text-gray-800 p-4 rounded">
+        <p className="text-sm">Transaction Count</p>
+        <p className="text-lg font-bold">{forecast.transactions ? forecast.transactions.length : 0}</p>
+      </div>
+    </div>
+  </div>
+) : (
+  <div className="bg-white rounded-xl shadow-lg p-6 mt-6">
+    <p className="text-center text-gray-500">No forecast data available</p>
+  </div>
+)}
+
+
     </div>
   );
 }
