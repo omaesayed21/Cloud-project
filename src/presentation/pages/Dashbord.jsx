@@ -12,6 +12,7 @@ export default function Dashboard() {
     totalBalance: 0,
     monthlySpending: 0,
     walletCount: 0,
+    budgetUsage: 0,  // Add budget usage to the state
     categories: [],
   });
 
@@ -36,6 +37,9 @@ export default function Dashboard() {
           return total;
         }, 0);
         
+        // Calculate Budget Usage Percentage
+        const budgetUsage = totalBalance ? (monthlySpending / totalBalance) * 100 : 0;
+
         const walletCount = wallets.length;
         const categories = transactions.reduce((acc, tx) => {
           acc[tx.category] = acc[tx.category] || 0;
@@ -47,6 +51,7 @@ export default function Dashboard() {
           totalBalance,
           monthlySpending,
           walletCount,
+          budgetUsage,  // Include budget usage in the data
           categories: Object.keys(categories).map((category) => ({
             name: category,
             amount: categories[category],
@@ -144,7 +149,7 @@ export default function Dashboard() {
             />
           </motion.div>
 
-          {/* Ensuring Budget Usage card is the same height as the others */}
+          {/* Dynamic Budget Usage card */}
           <motion.div
             initial={{ opacity: 0, y: -50 }}
             animate={{ opacity: 1, y: 0 }}
@@ -152,13 +157,16 @@ export default function Dashboard() {
           >
             <StatCard 
               title="Budget Usage"
-              value="75%"
+              value={`${dashboardData.budgetUsage.toFixed(2)}%`}
               icon={<CreditCard className="h-6 w-6 text-purple-500" />}
               bgColor="bg-purple-50"
               textColor="text-purple-600"
             >
               <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
-                <div className="bg-purple-600 h-2.5 rounded-full w-3/4"></div>
+                <div 
+                  className="bg-purple-600 h-2.5 rounded-full" 
+                  style={{ width: `${dashboardData.budgetUsage}%` }}
+                ></div>
               </div>
             </StatCard>
           </motion.div>
