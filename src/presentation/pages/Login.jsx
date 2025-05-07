@@ -25,6 +25,7 @@ export default function Login() {
 
             // تخزين التوكن في localStorage
             localStorage.setItem("token", response.data.token);
+            console.log(response.data.token);
 
             toast.success("Login successful!", {
               style: {

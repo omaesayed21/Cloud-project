@@ -11,7 +11,7 @@ import { useEffect } from 'react'
 import Transactions from './presentation/pages/Transactions'
 import Navbar from './presentation/pages/Navbar'
 import Wallets from './presentation/pages/Wallet'
-// import Budget from './presentation/pages/Budget'
+import Budget from './presentation/pages/Budget'
 function App() {
   // const [count, setCount] = useState(0)
 
@@ -28,7 +28,7 @@ function App() {
       <Route path="/dashboard"
        element={<PrivateRoute><Dashboard /></PrivateRoute>} />
        <Route path="/Wallets" element={<PrivateRoute><Wallets /></PrivateRoute>} />
-    {/* <Route path='/Budget' element ={<PrivateRoute><Budget/> </PrivateRoute>} /> */}
+    <Route path='/Budget' element ={<PrivateRoute><Budget/> </PrivateRoute>} />
 
     </Routes>
     

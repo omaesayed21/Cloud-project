@@ -1,8 +1,14 @@
 import { Navigate } from "react-router-dom";
-import { AuthService } from "../../infrastructure/services/AuthService";
 
 export default function PrivateRoute({ children }) {
-  const isAuth = AuthService.isAuthenticated();
+  // التحقق من التوكن في localStorage
+  const token = localStorage.getItem("token");
 
-  return isAuth ? children : <Navigate to="/login" replace />;
+  // لو مفيش توكن، نوجه المستخدم لصفحة تسجيل الدخول
+  if (!token) {
+    return <Navigate to="/Login" replace />;
+  }
+
+  // لو فيه توكن، نسمح بدخول المستخدم للصفحة المطلوبة
+  return children;
 }
