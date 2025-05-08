@@ -272,7 +272,7 @@ export default function Transactions() {
                   className="text-red-500 text-sm mt-1"
                 />
               </div>
-
+{/* 
               <div>
                 <label className="block text-sm font-medium mb-1">
                   Frequency
@@ -295,8 +295,8 @@ export default function Transactions() {
                   component="p"
                   className="text-red-500 text-sm mt-1"
                 />
-              </div>
-              <div>
+              </div> */}
+              {/* <div>
                 <label className="block text-sm font-medium mb-1">
                   End Date
                 </label>
@@ -314,7 +314,7 @@ export default function Transactions() {
                   component="p"
                   className="text-red-500 text-sm mt-1"
                 />
-              </div>
+              </div> */}
 
               <button
                 type="submit"

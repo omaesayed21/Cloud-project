@@ -48,14 +48,14 @@ export const transactionSchema = yup.object({
   frequency: yup.string()
     .nullable()
     .oneOf(["weekly", "monthly", ""], "Invalid frequency"),
-  end_date: yup.date()
-    .nullable()
-    .when("frequency", {
-      is: (val) => val && val !== "",
-      then: yup.date()
-        .required("End date is required for recurring transactions")
-        .min(yup.ref("date"), "End date must be after start date"),
-    }),
+  // end_date: yup.date()
+  //   .nullable()
+  //   .when("frequency", {
+  //     is: (val) => val && val !== "",
+  //     then: yup.date()
+  //       .required("End date is required for recurring transactions")
+  //       .min(yup.ref("date"), "End date must be after start date"),
+  //   }),
 });
 
 export const walletSchema = yup.object().shape({
