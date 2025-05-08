@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { PlusCircle, Edit2, Trash2, Calendar, DollarSign, Tag, RefreshCw } from "lucide-react";
 import { getBudgets , createBudget , updateBudget , deleteBudget } from "../../infrastructure/services/BudgetService";
 import axios from "axios";
+import { toast , Toaster } from "react-hot-toast";
+
 
 export default function Budget() {
   const [budgets, setBudgets] = useState([]);
@@ -35,22 +37,28 @@ export default function Budget() {
       .catch(() => setError("Error loading data"))
       .finally(() => setLoading(false));
 
-    axios.get("http://127.0.0.1:8000/api/forecast", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-    .then((res) => setForecast(res.data))
-    .catch(() => setForecast(null));
+  //   axios.get("http://127.0.0.1:8000/api/forecast", {
+  //     headers: {
+  //       Authorization: `Bearer ${token}`,
+  //     },
+  //   })
+  //   .then((res) => setForecast(res.data))
+  //   .catch(() => setForecast(null));
+  // }, [navigate, token]);
   }, [navigate, token]);
 
   const handleCreateBudget = () => {
     if (!token) return navigate("/login");
-
+  
     createBudget(newBudget, token)
       .then((data) => {
-        setBudgets([...budgets, data]);
-        resetForm();
+        // بعد إضافة الميزانية بنجاح، نقوم بجلب البيانات من الخادم لتحديث القائمة
+        getBudgets(token)
+          .then((newBudgets) => {
+            setBudgets(newBudgets); // تحديث القائمة
+            resetForm(); // إعادة تعيين النموذج
+          })
+          .catch(() => setError("Error fetching budgets"));
       })
       .catch(() => setError("Error creating budget"));
   };
@@ -65,14 +73,20 @@ export default function Budget() {
 
   const handleUpdateBudget = () => {
     if (!token) return navigate("/login");
-
+  
     updateBudget(editBudget.id, newBudget, token)
       .then((data) => {
-        setBudgets(budgets.map((b) => (b.id === editBudget.id ? data : b)));
-        resetForm();
+        // بعد تعديل الميزانية بنجاح، نقوم بجلب البيانات من الخادم لتحديث القائمة
+        getBudgets(token)
+          .then((newBudgets) => {
+            setBudgets(newBudgets); // تحديث القائمة
+            resetForm(); // إعادة تعيين النموذج
+          })
+          .catch(() => setError("Error fetching budgets"));
       })
       .catch(() => setError("Error updating budget"));
   };
+  
 
   const handleDeleteBudget = (id) => {
     if (!token) return navigate("/login");
@@ -107,6 +121,8 @@ export default function Budget() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
+              <Toaster />
+
         <div className="flex flex-col items-center">
           <RefreshCw className="w-10 h-10 text-blue-600 animate-spin" />
           <p className="mt-4 text-lg text-gray-700">Loading...</p>

@@ -13,9 +13,21 @@ export default function Transactions() {
   const categories = ["Food", "Transport", "Bills", "Shopping", "Entertainment", "Other"];
   const [editId, setEditId] = useState(null);
 
+  // Load transactions and wallets data on component mount
   useEffect(() => {
-    setTxs(TransactionService.getTransactions());
-    setWallets(getWallets());
+    const fetchData = async () => {
+      try {
+        const txData = await TransactionService.getTransactions(); // Get transactions from backend
+        const walletData = await getWallets(); // Get wallets from backend
+        setTxs(txData); // Set transactions state
+        setWallets(walletData); // Set wallets state
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        toast.error("Failed to load data");
+      }
+    };
+
+    fetchData();
   }, []);
 
   const handleSubmit = async (values, { setSubmitting, setErrors }) => {
@@ -29,18 +41,17 @@ export default function Transactions() {
 
     try {
       if (editId !== null) {
-        TransactionService.updateTransaction(editId, tx);
+        await TransactionService.updateTransaction(editId, tx); // Update transaction
         toast.success("Transaction updated");
       } else {
-        TransactionService.addTransaction(tx);
+        await TransactionService.addTransaction(tx); // Add new transaction
         toast.success("Transaction added");
       }
-     
-      setTxs(TransactionService.getTransactions());
-      setSubmitting(false);
-      setEditId(null); 
-      formikRef.current?.resetForm();
 
+      setTxs(await TransactionService.getTransactions()); // Refresh transactions
+      setSubmitting(false);
+      setEditId(null); // Reset edit state
+      formikRef.current?.resetForm(); // Reset form
     } catch (err) {
       setErrors({ general: "An error occurred while saving the transaction." });
       toast.error("Transaction failed");
@@ -60,12 +71,16 @@ export default function Transactions() {
       });
     }
   };
-  
 
-  const handleDelete = (id) => {
-    TransactionService.deleteTransaction(id);
-    setTxs(TransactionService.getTransactions());
-    toast.success("Transaction deleted");
+  const handleDelete = async (id) => {
+    try {
+      await TransactionService.deleteTransaction(id); // Delete transaction
+      setTxs(await TransactionService.getTransactions()); // Refresh transactions
+      toast.success("Transaction deleted");
+    } catch (error) {
+      console.error("Error deleting transaction:", error);
+      toast.error("Failed to delete transaction");
+    }
   };
 
   return (
@@ -73,8 +88,8 @@ export default function Transactions() {
       <div className="max-w-3xl mx-auto bg-white p-6 rounded-xl shadow-md">
         <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">Manage Transactions</h1>
 
-        <Formik   innerRef={(ref) => formikRef.current = ref}
-
+        <Formik
+          innerRef={(ref) => (formikRef.current = ref)}
           initialValues={{
             title: "",
             amount: "",
@@ -140,24 +155,24 @@ export default function Transactions() {
                 </Field>
                 <ErrorMessage name="category" component="p" className="text-red-500 text-sm mt-1" />
               </div>
-                    <div>
-                      <label htmlFor=""  className="block text-sm font-medium mb-1"> Wallet</label>
-                      <Field
-                        name="walletId"
-                        as="select"
-                        value={values.walletId}
-                        onChange={handleChange}
-                        className={` w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500  ${errors.walletId && touched.walletId ? 'border-red-500' : 'border-gray-300 focus:ring focus:border-green-400'}`} >
 
-                      <option value="">-- Select a Wallet --</option>
-                        {wallets.map((wallet) => (
-                          <option key={wallet.id} value={wallet.id}>{wallet.name}</option>
-                        ))}
+              <div>
+                <label htmlFor="" className="block text-sm font-medium mb-1">Wallet</label>
+                <Field
+                  name="walletId"
+                  as="select"
+                  value={values.walletId}
+                  onChange={handleChange}
+                  className={`w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.walletId && touched.walletId ? 'border-red-500' : 'border-gray-300 focus:ring focus:border-green-400'}`}
+                >
+                  <option value="">-- Select a Wallet --</option>
+                  {wallets.map((wallet) => (
+                    <option key={wallet.id} value={wallet.id}>{wallet.name}</option>
+                  ))}
+                </Field>
+                <ErrorMessage name="walletId" component="p" className="text-red-500 text-sm mt-1" />
+              </div>
 
-                        </Field>
-                        <ErrorMessage name="walletId" component="p" className="text-red-500 text-sm mt-1" />
-
-                    </div>
               <button
                 type="submit"
                 disabled={isSubmitting}
@@ -173,10 +188,7 @@ export default function Transactions() {
 
         <div className="space-y-4">
           {txs.map((tx) => (
-            <div
-              key={tx.id}
-              className="p-4 bg-white border-l-4 border-blue-500 shadow rounded-lg flex justify-between items-center"
-            >
+            <div key={tx.id} className="p-4 bg-white border-l-4 border-blue-500 shadow rounded-lg flex justify-between items-center">
               <div>
                 <h3 className="font-semibold text-lg">{tx.title}</h3>
                 <p className="text-gray-600 text-sm">
@@ -184,7 +196,8 @@ export default function Transactions() {
                   Wallet: <span className="font-medium">
                     {wallets.find((w) => w.id === tx.walletId)?.name || "N/A"}
                   </span>
-                </p>              </div>
+                </p>
+              </div>
               <div className="flex items-center gap-4">
                 <span className="text-green-600 font-bold">${tx.amount}</span>
                 <button
@@ -197,12 +210,11 @@ export default function Transactions() {
 
                 <button
                   onClick={() => handleDelete(tx.id)}
-                  className="text-red-500 hover:underline text-sm  cursor-pointer flex items-center gap-1"
+                  className="text-red-500 hover:underline text-sm cursor-pointer flex items-center gap-1"
                 >
                   <TrashIcon className="h-5 w-5" />
                   Delete
                 </button>
-
               </div>
             </div>
           ))}

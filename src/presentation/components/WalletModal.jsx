@@ -4,6 +4,7 @@ import { addWallet, getWallets, updateWallet } from '../../infrastructure/servic
 import { walletSchema } from '../hooks/useFormValidation';
 
 export default function WalletModal({ isOpen, setIsOpen, walletToEdit, onSuccess }) {
+  
   const [newName, setNewName] = useState('');
   const [newBalance, setNewBalance] = useState('');
   const [newType, setNewType] = useState('Cash');

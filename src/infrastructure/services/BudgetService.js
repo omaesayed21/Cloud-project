@@ -3,6 +3,10 @@ import axios from 'axios';
 
 const API_URL = 'http://127.0.0.1:8000/api/budgets';
 
+const authHeader = (token) => ({
+  headers: { Authorization: `Bearer ${token}` }
+});
+
 const getBudgets = async (token) => {
   try {
     const response = await axios.get(API_URL, {
