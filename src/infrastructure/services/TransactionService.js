@@ -7,23 +7,36 @@ export const TransactionService = {
         Authorization: `Bearer ${token}`,
       },
     });
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(JSON.stringify(errorData));
+    }
     return res.json();
   },
 
   async addTransaction(data, token) {
-    const res = await fetch(BASE_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(data),
-    });
-    return res.json();
+    try {
+      const res = await fetch(BASE_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(JSON.stringify(errorData));
+      }
+      return res.json();
+    } catch (error) {
+      console.error("Failed to add transaction:", error.message);
+      throw error;
+    }
   },
 
   async updateTransaction(id, data, token) {
-    const res = await fetch(`${BASE_URL}/${id}/`, {
+    const res = await fetch(`${BASE_URL}/${id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -31,16 +44,24 @@ export const TransactionService = {
       },
       body: JSON.stringify(data),
     });
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(JSON.stringify(errorData));
+    }
     return res.json();
   },
 
   async deleteTransaction(id, token) {
-    const res = await fetch(`${BASE_URL}/${id}/`, {
+    const res = await fetch(`${BASE_URL}/${id}`, {
       method: "DELETE",
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(JSON.stringify(errorData));
+    }
     return res.ok;
   },
 };
