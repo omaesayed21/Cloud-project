@@ -1,8 +1,15 @@
-import { useState, useEffect } from 'react';
-import { Wallet, CreditCard, DollarSign, PieChart, TrendingDown } from 'lucide-react';
-import { TransactionService } from '../../infrastructure/services/TransactionService';
-import { getWallets } from '../../infrastructure/services/WalletService'; // Import getWallets
-import { motion } from 'framer-motion'; // Importing framer-motion for animations
+import { useState, useEffect } from "react";
+import {
+  Wallet,
+  CreditCard,
+  DollarSign,
+  PieChart,
+  TrendingDown,
+} from "lucide-react";
+import { TransactionService } from "../../infrastructure/services/TransactionService";
+import { getWallets } from "../../infrastructure/services/WalletService"; // Import getWallets
+import { motion } from "framer-motion"; // Importing framer-motion for animations
+import { CategoryService } from "../../infrastructure/services/CategoryService";
 
 // Main Dashboard Component
 export default function Dashboard() {
@@ -12,7 +19,7 @@ export default function Dashboard() {
     totalBalance: 0,
     monthlySpending: 0,
     walletCount: 0,
-    budgetUsage: 0,  // Add budget usage to the state
+    budgetUsage: 0, // Add budget usage to the state
     categories: [],
   });
 
@@ -21,53 +28,83 @@ export default function Dashboard() {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
+        const token = localStorage.getItem("token");
+        if (!token) {
+          throw new Error("No authentication token found");
+        }
 
-        // Fetch actual wallet and transaction data
-        const wallets = await getWallets(); // Updated method to use getWallets
-        const transactions = await TransactionService.getTransactions(); // Fetch transaction service
-        
+        // Fetch data
+        const [wallets, transactions, categories] = await Promise.all([
+          getWallets(token),
+          TransactionService.getTransactions(token),
+          CategoryService.getCategories(token),
+        ]);
+
+        console.log("Wallets:", wallets);
+        console.log("Transactions:", transactions);
+        console.log("Categories:", categories);
+
         // Calculations
-        const totalBalance = wallets.reduce((total, wallet) => total + wallet.balance, 0);
+        const totalBalance = wallets.reduce(
+          (total, wallet) => total + (wallet.balance || 0),
+          0
+        );
+
         const monthlySpending = transactions.reduce((total, tx) => {
           const currentMonth = new Date().getMonth();
           const txMonth = new Date(tx.date).getMonth();
-          if (txMonth === currentMonth && tx.type === 'expense') {
+          if (txMonth === currentMonth && tx.type === "expense") {
             total += tx.amount;
           }
           return total;
         }, 0);
-        
-        // Calculate Budget Usage Percentage
-        const budgetUsage = totalBalance ? (monthlySpending / totalBalance) * 100 : 0;
+
+        const budgetUsage = totalBalance
+          ? (monthlySpending / totalBalance) * 100
+          : 0;
 
         const walletCount = wallets.length;
-        const categories = transactions.reduce((acc, tx) => {
-          acc[tx.category] = acc[tx.category] || 0;
-          acc[tx.category] += tx.amount;
+
+        // Calculate category breakdown
+        const categoryMap = transactions.reduce((acc, tx) => {
+          const category = categories.find((c) => c.id === tx.category_id);
+          const categoryName = category ? category.name : "Unknown";
+          acc[categoryName] = (acc[categoryName] || 0) + tx.amount;
           return acc;
         }, {});
+
+        const categoryData = Object.keys(categoryMap).map((name) => ({
+          name,
+          amount: categoryMap[name],
+          percentage: monthlySpending
+            ? (categoryMap[name] / monthlySpending) * 100
+            : 0,
+        }));
 
         setDashboardData({
           totalBalance,
           monthlySpending,
           walletCount,
-          budgetUsage,  // Include budget usage in the data
-          categories: Object.keys(categories).map((category) => ({
-            name: category,
-            amount: categories[category],
-            percentage: (categories[category] / monthlySpending) * 100,
-          })),
+          budgetUsage,
+          categories: categoryData,
         });
 
         setLoading(false);
       } catch (err) {
-        setError('Error loading data');
+        console.error("Fetch error:", err);
+        let errorMessage = "Error loading data";
+        if (err.message.includes("token")) {
+          errorMessage = "Please log in to view your dashboard";
+        } else if (err.message.includes("Failed to fetch")) {
+          errorMessage = "Unable to connect to the server";
+        }
+        setError(errorMessage);
         setLoading(false);
       }
     };
 
     fetchDashboardData();
-  }, []);  // Empty dependency array means this effect runs once when the component mounts.
+  }, []);
 
   if (loading) {
     return (
@@ -87,7 +124,7 @@ export default function Dashboard() {
           <div className="text-red-500 text-4xl mb-4">!</div>
           <h2 className="text-xl font-bold mb-2">An error occurred</h2>
           <p className="text-gray-600">{error}</p>
-          <button 
+          <button
             className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
             onClick={() => window.location.reload()}
           >
@@ -112,7 +149,7 @@ export default function Dashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <StatCard 
+            <StatCard
               title="Total Balance"
               value={`$${dashboardData.totalBalance.toLocaleString()}`}
               icon={<DollarSign className="h-6 w-6 text-green-500" />}
@@ -126,7 +163,7 @@ export default function Dashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
           >
-            <StatCard 
+            <StatCard
               title="Monthly Spending"
               value={`$${dashboardData.monthlySpending.toLocaleString()}`}
               icon={<TrendingDown className="h-6 w-6 text-red-500" />}
@@ -140,7 +177,7 @@ export default function Dashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
           >
-            <StatCard 
+            <StatCard
               title="Wallet Count"
               value={dashboardData.walletCount}
               icon={<Wallet className="h-6 w-6 text-blue-500" />}
@@ -155,7 +192,7 @@ export default function Dashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
           >
-            <StatCard 
+            <StatCard
               title="Budget Usage"
               value={`${dashboardData.budgetUsage.toFixed(2)}%`}
               icon={<CreditCard className="h-6 w-6 text-purple-500" />}
@@ -163,8 +200,8 @@ export default function Dashboard() {
               textColor="text-purple-600"
             >
               <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
-                <div 
-                  className="bg-purple-600 h-2.5 rounded-full" 
+                <div
+                  className="bg-purple-600 h-2.5 rounded-full"
                   style={{ width: `${dashboardData.budgetUsage}%` }}
                 ></div>
               </div>
@@ -174,16 +211,18 @@ export default function Dashboard() {
 
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-gray-800">Category Breakdown</h2>
+            <h2 className="text-xl font-bold text-gray-800">
+              Category Breakdown
+            </h2>
             <div className="flex items-center">
               <PieChart className="h-5 w-5 text-gray-500 mr-2" />
               <span className="text-sm text-gray-500">Current month</span>
             </div>
           </div>
-          
+
           <div className="space-y-4">
             {dashboardData.categories.map((category, index) => (
-              <CategoryItem 
+              <CategoryItem
                 key={index}
                 name={category.name}
                 amount={category.amount}
@@ -206,9 +245,7 @@ function StatCard({ title, value, icon, bgColor, textColor, children }) {
           <h3 className="text-gray-600 text-sm">{title}</h3>
           <p className={`${textColor} text-2xl font-bold mt-1`}>{value}</p>
         </div>
-        <div className="p-2 rounded-full bg-white shadow">
-          {icon}
-        </div>
+        <div className="p-2 rounded-full bg-white shadow">{icon}</div>
       </div>
       {children}
     </div>
@@ -219,25 +256,30 @@ function StatCard({ title, value, icon, bgColor, textColor, children }) {
 function CategoryItem({ name, amount, percentage }) {
   const getColorClass = (categoryName) => {
     const colors = {
-      'Food': 'bg-blue-500',
-      'Entertainment': 'bg-green-500',
-      'Transportation': 'bg-yellow-500',
+      Food: "bg-blue-500",
+      Entertainment: "bg-green-500",
+      Transportation: "bg-yellow-500",
+      Bills: "bg-red-500",
+      Shopping: "bg-purple-500",
+      Other: "bg-gray-500",
     };
-    return colors[categoryName] || 'bg-gray-500';
+    return colors[categoryName] || "bg-gray-500";
   };
 
   return (
     <div>
       <div className="flex justify-between items-center mb-1">
         <div className="flex items-center">
-          <div className={`h-3 w-3 rounded-full ${getColorClass(name)} mr-2`}></div>
+          <div
+            className={`h-3 w-3 rounded-full ${getColorClass(name)} mr-2`}
+          ></div>
           <span className="font-medium">{name}</span>
         </div>
         <div className="text-gray-700">${amount.toLocaleString()}</div>
       </div>
       <div className="w-full bg-gray-200 rounded-full h-1.5">
-        <div 
-          className={`${getColorClass(name)} h-1.5 rounded-full`} 
+        <div
+          className={`${getColorClass(name)} h-1.5 rounded-full`}
           style={{ width: `${percentage}%` }}
         ></div>
       </div>
