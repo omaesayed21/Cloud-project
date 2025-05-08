@@ -227,6 +227,7 @@ export default function Dashboard() {
                 name={category.name}
                 amount={category.amount}
                 percentage={category.percentage}
+                index={index}
               />
             ))}
           </div>
@@ -252,18 +253,47 @@ function StatCard({ title, value, icon, bgColor, textColor, children }) {
   );
 }
 
-// CategoryItem component
-function CategoryItem({ name, amount, percentage }) {
-  const getColorClass = (categoryName) => {
-    const colors = {
+// CategoryItem component with dynamic color generation
+function CategoryItem({ name, amount, percentage, index }) {
+  // Dynamic color generation function
+  const getColorClass = (categoryName, index) => {
+    // Predefined colors for common categories (fallback)
+    const commonCategories = {
       Food: "bg-blue-500",
       Entertainment: "bg-green-500",
       Transportation: "bg-yellow-500",
       Bills: "bg-red-500",
       Shopping: "bg-purple-500",
-      Other: "bg-gray-500",
+      Healthcare: "bg-indigo-500",
+      Education: "bg-pink-500",
+      Housing: "bg-orange-500"
     };
-    return colors[categoryName] || "bg-gray-500";
+    
+    // If the category is a common one, use its predefined color
+    if (commonCategories[categoryName]) {
+      return commonCategories[categoryName];
+    }
+    
+    // Otherwise, generate a color based on the category name or index
+    const colorOptions = [
+      "bg-blue-500", "bg-green-500", "bg-yellow-500", "bg-red-500", 
+      "bg-purple-500", "bg-indigo-500", "bg-pink-500", "bg-orange-500",
+      "bg-teal-500", "bg-cyan-500", "bg-lime-500", "bg-amber-500"
+    ];
+    
+    // Use the string's characters to generate a consistent index for the same category name
+    if (categoryName) {
+      // Simple hash function to convert string to number
+      const hashCode = categoryName.split('').reduce(
+        (acc, char) => acc + char.charCodeAt(0), 0
+      );
+      
+      // Use modulo to get an index within our color array range
+      return colorOptions[hashCode % colorOptions.length];
+    }
+    
+    // Fallback to using the index in the category list
+    return colorOptions[index % colorOptions.length] || "bg-gray-500";
   };
 
   return (
@@ -271,7 +301,7 @@ function CategoryItem({ name, amount, percentage }) {
       <div className="flex justify-between items-center mb-1">
         <div className="flex items-center">
           <div
-            className={`h-3 w-3 rounded-full ${getColorClass(name)} mr-2`}
+            className={`h-3 w-3 rounded-full ${getColorClass(name, index)} mr-2`}
           ></div>
           <span className="font-medium">{name}</span>
         </div>
@@ -279,7 +309,7 @@ function CategoryItem({ name, amount, percentage }) {
       </div>
       <div className="w-full bg-gray-200 rounded-full h-1.5">
         <div
-          className={`${getColorClass(name)} h-1.5 rounded-full`}
+          className={`${getColorClass(name, index)} h-1.5 rounded-full`}
           style={{ width: `${percentage}%` }}
         ></div>
       </div>
