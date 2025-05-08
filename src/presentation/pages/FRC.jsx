@@ -24,7 +24,7 @@ export default function BudgetForecastDashboard() {
   const fetchForecastData = async () => {
     try {
       setIsLoading(true);
-      const token = localStorage.getItem("token"); // Changed from 'authToken' to 'token'
+      const token = localStorage.getItem("token");
       if (!token) {
         throw new Error("No authentication token found");
       }
