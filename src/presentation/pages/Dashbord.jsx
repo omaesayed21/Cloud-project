@@ -10,7 +10,7 @@ import { TransactionService } from "../../infrastructure/services/TransactionSer
 import { getWallets } from "../../infrastructure/services/WalletService"; // Import getWallets
 import { motion } from "framer-motion"; // Importing framer-motion for animations
 import { CategoryService } from "../../infrastructure/services/CategoryService";
-
+import { RefreshCw } from "lucide-react";
 // Main Dashboard Component
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
@@ -108,10 +108,10 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading data...</p>
+      <div className="flex items-center justify-center h-screen">
+        <div className="flex flex-col items-center">
+          <RefreshCw className="w-10 h-10 text-blue-600 animate-spin" />
+          <p className="mt-4 text-lg text-gray-700">Loading...</p>
         </div>
       </div>
     );
