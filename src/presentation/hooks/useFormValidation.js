@@ -34,15 +34,28 @@ export const registerSchema = yup.object().shape({
     .oneOf([yup.ref("password")], "Passwords do not match"),
 });
 
-export const transactionSchema = yup.object().shape({
+export const transactionSchema = yup.object({
   title: yup.string().required("Title is required"),
-  amount: yup
-    .number()
-    .typeError("Amount must be a number")
-    .positive("Amount must be a positive number")
-    .required("Amount is required"),
-  date: yup.string().required("Date is required"),
-  category: yup.string().required("Please select a category"),
+  amount: yup.number()
+    .required("Amount is required")
+    .positive("Amount must be positive"),
+  date: yup.date().required("Date is required"),
+  category_id: yup.number().required("Category is required"),
+  walletId: yup.number().required("Wallet is required"),
+  type: yup.string()
+    .required("Type is required")
+    .oneOf(["income", "expense"], "Invalid type"),
+  frequency: yup.string()
+    .nullable()
+    .oneOf(["weekly", "monthly", ""], "Invalid frequency"),
+  end_date: yup.date()
+    .nullable()
+    .when("frequency", {
+      is: (val) => val && val !== "",
+      then: yup.date()
+        .required("End date is required for recurring transactions")
+        .min(yup.ref("date"), "End date must be after start date"),
+    }),
 });
 
 export const walletSchema = yup.object().shape({
@@ -62,4 +75,4 @@ export const budgetSchema = yup.object().shape({
     .typeError("Limit must be a number")
     .min(0, "Limit must be a positive number")
     .required("Limit is required"),
-})
+});
