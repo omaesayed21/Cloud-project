@@ -4,7 +4,7 @@ import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 import { Link, useNavigate } from "react-router-dom";
 import toast, { Toaster } from "react-hot-toast";
 import { Formik, Field, Form, ErrorMessage } from "formik";
-import axios from "axios";  // استيراد axios
+import axios from "axios"; 
 
 export default function Login() {
   const navigate = useNavigate();
@@ -39,7 +39,6 @@ export default function Login() {
               navigate("/dashboard");
             }, 800);
           } catch (err) {
-            // التعامل مع الخطأ
             toast.error("Login failed: " + err.response?.data?.message || err.message, {
               style: {
                 borderRadius: "8px",

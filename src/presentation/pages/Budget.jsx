@@ -1,22 +1,24 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PlusCircle, Edit2, Trash2, Calendar, DollarSign, Tag, RefreshCw } from "lucide-react";
-import { getBudgets , createBudget , updateBudget , deleteBudget } from "../../infrastructure/services/BudgetService";
+import { getBudgets, createBudget, updateBudget, deleteBudget } from "../../infrastructure/services/BudgetService";
 import axios from "axios";
-import { toast , Toaster } from "react-hot-toast";
-
+import { toast, Toaster } from "react-hot-toast";
 
 export default function Budget() {
   const [budgets, setBudgets] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [newBudget, setNewBudget] = useState({
+    category_id: "",
     category_name: "",
     amount: "",
     start_date: "",
     end_date: "",
-    type: "income",
-    color: "#10b981"
+    category_type: "income",
+    color: "#10b981",
+    isNewCategory: false
   });
   const [editMode, setEditMode] = useState(false);
   const [editBudget, setEditBudget] = useState(null);
@@ -37,77 +39,103 @@ export default function Budget() {
       .catch(() => setError("Error loading data"))
       .finally(() => setLoading(false));
 
-    axios.get("http://127.0.0.1:8000/api/forecast", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-    .then((res) => setForecast(res.data))
-    .catch(() => setForecast(null));
+    axios
+      .get("http://127.0.0.1:8000/api/categories", {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      .then((res) => setCategories(res.data))
+      .catch(() => setError("Error loading categories"));
   }, [navigate, token]);
 
   const handleCreateBudget = () => {
     if (!token) return navigate("/login");
-  
-    createBudget(newBudget, token)
-    .then((data) => {
-      toast.success("Budget created successfully");
-      getBudgets(token)
-        .then((newBudgets) => {
-          setBudgets(newBudgets);
-          resetForm();
-        })
-        .catch(() => setError("Error fetching budgets"));
-    })
-    .catch(() => {
-      toast.error("Error creating budget");
-      setError("Error creating budget");
-    });
-  
+
+    const payload = newBudget.isNewCategory
+      ? {
+          category_name: newBudget.category_name,
+          amount: newBudget.amount,
+          start_date: newBudget.start_date,
+          end_date: newBudget.end_date,
+          category_type: newBudget.category_type,
+          color: newBudget.color
+        }
+      : {
+          category_id: newBudget.category_id,
+          amount: newBudget.amount,
+          start_date: newBudget.start_date,
+          end_date: newBudget.end_date
+        };
+
+    createBudget(payload, token)
+      .then(() => {
+        toast.success("Budget created successfully!");
+        getBudgets(token)
+          .then(setBudgets)
+          .catch(() => setError("Error fetching budgets"));
+        resetForm();
+      })
+      .catch(() => {
+        toast.error("Error creating budget");
+        setError("Error creating budget");
+      });
   };
 
   const handleEditBudget = (budget) => {
     setEditMode(true);
     setEditBudget(budget);
-    setNewBudget({ ...budget });
+    setNewBudget({
+      category_id: budget.category_id || "",
+      category_name: budget.category_name || "",
+      amount: budget.amount,
+      start_date: budget.start_date,
+      end_date: budget.end_date,
+      category_type: budget.category_type || "income",
+      color: budget.category_color || "#10b981",
+      isNewCategory: false
+    });
     setIsFormOpen(true);
     window.scrollTo(0, 0);
   };
 
   const handleUpdateBudget = () => {
     if (!token) return navigate("/login");
-  
-    updateBudget(editBudget.id, newBudget, token)
-    .then((data) => {
-      toast.success("Budget updated successfully");
-      getBudgets(token)
-        .then((newBudgets) => {
-          setBudgets(newBudgets);
-          resetForm();
-          setIsFormOpen(false);
-        })
-        .catch(() => setError("Error fetching budgets"));
-    })
-    .catch(() => {
-      toast.error("Error updating budget");
-      setError("Error updating budget");
-    });
-  
+
+    const payload = {
+      category_id: newBudget.category_id,
+      category_name: newBudget.category_name,
+      amount: newBudget.amount,
+      start_date: newBudget.start_date,
+      end_date: newBudget.end_date,
+      category_type: newBudget.category_type,
+      color: newBudget.color
+    };
+
+    updateBudget(editBudget.id, payload, token)
+      .then((data) => {
+        toast.success("Budget updated successfully!");
+        setBudgets((prev) =>
+          prev.map((b) => (b.id === editBudget.id ? data : b))
+        );
+        resetForm();
+      })
+      .catch(() => {
+        toast.error("Error updating budget");
+        setError("Error updating budget");
+      });
   };
-  
+
   const handleDeleteBudget = (id) => {
     if (!token) return navigate("/login");
 
- deleteBudget(id, token)
-  .then(() => {
-    toast.success("Budget deleted successfully");
-    setBudgets(budgets.filter((b) => b.id !== id));
-  })
-  .catch(() => {
-    toast.error("Error deleting budget");
-    setError("Error deleting budget");
-  });
-
+    deleteBudget(id, token)
+      .then(() => {
+        toast.success("Budget deleted successfully!");
+        setBudgets(budgets.filter((b) => b.id !== id));
+      })
+      .catch(() => {
+        toast.error("Error deleting budget");
+        setError("Error deleting budget");
+      });
   };
 
   const resetForm = () => {
@@ -115,25 +143,27 @@ export default function Budget() {
     setEditBudget(null);
     setIsFormOpen(false);
     setNewBudget({
+      category_id: "",
       category_name: "",
       amount: "",
       start_date: "",
       end_date: "",
-      type: "income",
-      color: "#10b981"
+      category_type: "income",
+      color: "#10b981",
+      isNewCategory: false
     });
   };
 
   const calculateTotal = (type) => {
     return budgets
-      .filter((b) => type === 'all' || b.category_type === type)
+      .filter((b) => type === "all" || b.category_type === type)
       .reduce((total, b) => total + Number(b.amount), 0);
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
-
+        <Toaster />
         <div className="flex flex-col items-center">
           <RefreshCw className="w-10 h-10 text-blue-600 animate-spin" />
           <p className="mt-4 text-lg text-gray-700">Loading...</p>
@@ -147,6 +177,7 @@ export default function Budget() {
   if (error) {
     return (
       <div className="flex items-center justify-center h-screen">
+        <Toaster />
         <div className="p-6 bg-red-50 rounded-lg border border-red-200">
           <p className="text-red-600 text-lg">{error}</p>
         </div>
@@ -156,10 +187,8 @@ export default function Budget() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6 rtl">
-          <Toaster position="top-center" reverseOrder={false} />
-
+      <Toaster />
       <div className="max-w-6xl mx-auto">
-        {/* Header with Summary */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
           <div className="flex flex-col md:flex-row justify-between items-center mb-6">
             <h1 className="text-2xl font-bold text-gray-800 mb-4 md:mb-0">Budget Management</h1>
@@ -172,46 +201,146 @@ export default function Budget() {
             </button>
           </div>
 
-          {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-4 text-white shadow-md">
               <h3 className="text-lg font-medium mb-1">Total Budget</h3>
-              <p className="text-2xl font-bold">{calculateTotal('all')} EGP</p>
+              <p className="text-2xl font-bold">{calculateTotal("all")} EGP</p>
             </div>
             <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-4 text-white shadow-md">
               <h3 className="text-lg font-medium mb-1">Total Income</h3>
-              <p className="text-2xl font-bold">{calculateTotal('income')} EGP</p>
+              <p className="text-2xl font-bold">{calculateTotal("income")} EGP</p>
             </div>
             <div className="bg-gradient-to-r from-red-500 to-red-600 rounded-lg p-4 text-white shadow-md">
               <h3 className="text-lg font-medium mb-1">Total Expenses</h3>
-              <p className="text-2xl font-bold">{calculateTotal('expense')} EGP</p>
+              <p className="text-2xl font-bold">{calculateTotal("expense")} EGP</p>
             </div>
           </div>
         </div>
-  
 
-        {/* Form for creating or editing budget */}
         {isFormOpen && (
           <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
             <h2 className="text-xl font-bold mb-4 text-gray-800 border-b pb-2">
               {editMode ? "Edit Budget" : "Add New Budget"}
             </h2>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Category Name</label>
-                <div className="relative">
-                  <Tag className="absolute right-3 top-3 text-gray-500" size={18} />
-                <input
-  type="text"
-  value={newBudget.category_name}
-  onChange={(e) => setNewBudget({ ...newBudget, category_name: e.target.value })}
-  placeholder="Example: Salary, Rent"
-  className="border border-gray-300 rounded-lg p-2 pr-10 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
-/>
+              {!editMode && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Category Type</label>
+                  <select
+                    value={newBudget.isNewCategory ? "new" : "existing"}
+                    onChange={(e) =>
+                      setNewBudget({
+                        ...newBudget,
+                        isNewCategory: e.target.value === "new",
+                        category_id: "",
+                        category_name: ""
+                      })
+                    }
+                    className="border border-gray-300 rounded-lg p-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                  >
+                    <option value="existing">Existing Category</option>
+                    <option value="new">New Category</option>
+                  </select>
                 </div>
-              </div>
-              
+              )}
+
+              {editMode ? (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Category Name</label>
+                    <div className="relative">
+                      <Tag className="absolute right-3 top-3 text-gray-500" size={18} />
+                      <input
+                        type="text"
+                        value={newBudget.category_name}
+                        onChange={(e) => setNewBudget({ ...newBudget, category_name: e.target.value })}
+                        placeholder="Example: Salary, Rent"
+                        className="border border-gray-300 rounded-lg p-2 pr-10 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Category Type</label>
+                    <select
+                      value={newBudget.category_type}
+                      onChange={(e) => setNewBudget({ ...newBudget, category_type: e.target.value })}
+                      className="border border-gray-300 rounded-lg p-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                    >
+                      <option value="income">Income</option>
+                      <option value="expense">Expense</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Color</label>
+                    <div className="flex items-center">
+                      <input
+                        type="color"
+                        value={newBudget.color}
+                        onChange={(e) => setNewBudget({ ...newBudget, color: e.target.value })}
+                        className="w-10 h-10 rounded border border-gray-300 mr-2"
+                      />
+                      <span className="text-sm text-gray-600">{newBudget.color}</span>
+                    </div>
+                  </div>
+                </>
+              ) : newBudget.isNewCategory ? (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Category Name</label>
+                    <div className="relative">
+                      <Tag className="absolute right-3 top-3 text-gray-500" size={18} />
+                      <input
+                        type="text"
+                        value={newBudget.category_name}
+                        onChange={(e) => setNewBudget({ ...newBudget, category_name: e.target.value })}
+                        placeholder="Example: Salary, Rent"
+                        className="border border-gray-300 rounded-lg p-2 pr-10 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Category Type</label>
+                    <select
+                      value={newBudget.category_type}
+                      onChange={(e) => setNewBudget({ ...newBudget, category_type: e.target.value })}
+                      className="border border-gray-300 rounded-lg p-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                    >
+                      <option value="income">Income</option>
+                      <option value="expense">Expense</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Color</label>
+                    <div className="flex items-center">
+                      <input
+                        type="color"
+                        value={newBudget.color}
+                        onChange={(e) => setNewBudget({ ...newBudget, color: e.target.value })}
+                        className="w-10 h-10 rounded border border-gray-300 mr-2"
+                      />
+                      <span className="text-sm text-gray-600">{newBudget.color}</span>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                  <select
+                    value={newBudget.category_id}
+                    onChange={(e) => setNewBudget({ ...newBudget, category_id: e.target.value })}
+                    className="border border-gray-300 rounded-lg p-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                  >
+                    <option value="">Select a category</option>
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name} ({category.type})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
                 <div className="relative">
@@ -225,7 +354,7 @@ export default function Budget() {
                   />
                 </div>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
                 <div className="relative">
@@ -238,7 +367,7 @@ export default function Budget() {
                   />
                 </div>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
                 <div className="relative">
@@ -251,51 +380,26 @@ export default function Budget() {
                   />
                 </div>
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                <select
-                  value={newBudget.type}
-                  onChange={(e) => setNewBudget({ ...newBudget, type: e.target.value })}
-                  className="border border-gray-300 rounded-lg p-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
-                >
-                  <option value="income">Income</option>
-                  <option value="expense">Expense</option>
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Color</label>
-                <div className="flex items-center">
-                  <input
-                    type="color"
-                    value={newBudget.color}
-                    onChange={(e) => setNewBudget({ ...newBudget, color: e.target.value })}
-                    className="w-10 h-10 rounded border border-gray-300 mr-2"
-                  />
-                  <span className="text-sm text-gray-600">{newBudget.color}</span>
-                </div>
-              </div>
             </div>
-            
+
             <div className="mt-6 flex justify-end gap-3">
-              <button 
-                onClick={resetForm} 
-                className="px-4 py-2  cursor-pointer bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-all"
+              <button
+                onClick={resetForm}
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-all"
               >
                 Cancel
               </button>
               {editMode ? (
-                <button 
-                  onClick={handleUpdateBudget} 
-                  className="px-4 py-2 bg-blue-600  cursor-pointer text-white rounded-lg hover:bg-blue-700 transition-all"
+                <button
+                  onClick={handleUpdateBudget}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all"
                 >
                   Update
                 </button>
               ) : (
-                <button 
-                  onClick={handleCreateBudget} 
-                  className="px-4 py-2 bg-green-600  text-white rounded-lg hover:bg-green-700 transition-all"
+                <button
+                  onClick={handleCreateBudget}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all"
                 >
                   Create
                 </button>
@@ -304,10 +408,9 @@ export default function Budget() {
           </div>
         )}
 
-        {/* List of budgets */}
         <div className="bg-white rounded-xl shadow-lg p-6">
           <h2 className="text-xl font-bold mb-6 text-gray-800 border-b pb-2">All Budgets</h2>
-          
+
           {budgets.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
               <p>No budgets found. Add a new budget to get started.</p>
@@ -315,23 +418,27 @@ export default function Budget() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {budgets.map((budget) => (
-                <div 
-                  key={budget.id} 
+                <div
+                  key={budget.id}
                   className="bg-white border rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow"
-                  style={{ borderTop: `4px solid ${budget.color}` }}
+                  style={{ borderTop: `4px solid ${budget.category_color}` }}
                 >
                   <div className="p-4">
                     <div className="flex justify-between items-start">
                       <h3 className="font-bold text-lg text-gray-800">{budget.category_name}</h3>
-                      <span className={`px-2 py-1 text-xs rounded ${
-                        budget.category_type === 'income' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                      }`}>
-                        {budget.category_type === 'income' ? 'Income' : 'Expense'}
+                      <span
+                        className={`px-2 py-1 text-xs rounded ${
+                          budget.category_type === "income"
+                            ? "bg-green-100 text-green-800"
+                            : "bg-red-100 text-red-800"
+                        }`}
+                      >
+                        {budget.category_type === "income" ? "Income" : "Expense"}
                       </span>
                     </div>
-                    
-                    <p className="text-md font-bold mt-2 text-gray-500"> {budget.amount} EGP</p>
-                    
+
+                    <p className="text-md font-bold mt-2 text-gray-500">{budget.amount} EGP</p>
+
                     <div className="mt-3 text-sm text-gray-600">
                       <div className="flex items-center mb-1">
                         <Calendar className="w-4 h-4 ml-1" />
@@ -342,19 +449,17 @@ export default function Budget() {
                         <span>To: {budget.end_date}</span>
                       </div>
                     </div>
-                    {/* <div>
-                      {budget.category_color}
-                    </div> */}
+
                     <div className="mt-4 flex justify-end gap-2">
-                      <button 
-                        onClick={() => handleEditBudget(budget)} 
-                        className="p-2 bg-yellow-500  cursor-pointer text-white rounded hover:bg-yellow-600 transition-all"
+                      <button
+                        onClick={() => handleEditBudget(budget)}
+                        className="p-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-all"
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
-                      <button 
-                        onClick={() => handleDeleteBudget(budget.id)} 
-                        className="p-2   cursor-pointer bg-red-500 text-white rounded hover:bg-red-600 transition-all"
+                      <button
+                        onClick={() => handleDeleteBudget(budget.id)}
+                        className="p-2 bg-red-500 text-white rounded hover:bg-red-600 transition-all"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -366,32 +471,6 @@ export default function Budget() {
           )}
         </div>
       </div>
-{forecast ? (
-  <div className="bg-white rounded-xl shadow-lg p-6 mt-6">
-    <h2 className="text-xl font-bold mb-4 text-gray-800 border-b pb-2">Forecast</h2>
-
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 p-4 rounded">
-        <p className="text-sm">Date</p>
-        <p className="text-lg font-bold">{forecast.date}</p>
-      </div>
-      <div className="bg-blue-100 border-l-4 border-blue-500 text-blue-800 p-4 rounded">
-        <p className="text-sm">Projected Balance</p>
-        <p className="text-lg font-bold">{forecast.projected_balance} EGP</p>
-      </div>
-      <div className="bg-gray-100 border-l-4 border-gray-500 text-gray-800 p-4 rounded">
-        <p className="text-sm">Transaction Count</p>
-        <p className="text-lg font-bold">{forecast.transactions ? forecast.transactions.length : 0}</p>
-      </div>
-    </div>
-  </div>
-) : (
-  <div className="bg-white rounded-xl shadow-lg p-6 mt-6">
-    <p className="text-center text-gray-500">No forecast data available</p>
-  </div>
-)}
-
-
     </div>
   );
 }
