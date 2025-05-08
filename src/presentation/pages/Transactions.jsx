@@ -5,22 +5,27 @@ import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/solid";
 import toast, { Toaster } from "react-hot-toast";
 import { Formik, Field, Form, ErrorMessage } from "formik";
 import { getWallets } from "../../infrastructure/services/WalletService";
+import { CategoryService } from "../../infrastructure/services/CategoryService";
+import TransactionsSection from "../components/TransactionsSection";
 
 export default function Transactions() {
   const formikRef = useRef(null);
   const [wallets, setWallets] = useState([]);
   const [txs, setTxs] = useState([]);
-  const categories = ["Food", "Transport", "Bills", "Shopping", "Entertainment", "Other"];
+  const [categories, setCategories] = useState([]);
   const [editId, setEditId] = useState(null);
 
   // Load transactions and wallets data on component mount
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const txData = await TransactionService.getTransactions(); // Get transactions from backend
-        const walletData = await getWallets(); // Get wallets from backend
-        setTxs(txData); // Set transactions state
-        setWallets(walletData); // Set wallets state
+        const token = localStorage.getItem("token");
+        const txData = await TransactionService.getTransactions(token);
+        const walletData = await getWallets(token);
+        const categoryData = await CategoryService.getCategories(token);
+        setTxs(txData);
+        setWallets(walletData);
+        setCategories(categoryData); // Expecting [{ id: 1, name: "Food" }, ...]
       } catch (error) {
         console.error("Error fetching data:", error);
         toast.error("Failed to load data");
@@ -32,29 +37,44 @@ export default function Transactions() {
 
   const handleSubmit = async (values, { setSubmitting, setErrors }) => {
     const tx = {
-      title: values.title,
+      account_id: parseInt(values.walletId),
+      category_id: parseInt(values.category_id),
       amount: parseFloat(values.amount),
+      type: values.type, // Use form value
       date: values.date,
-      category: values.category,
-      walletId: values.walletId,
+      payee: values.title,
+      // Optionally include for recurring transactions
+      frequency: values.frequency || null,
+      end_date: values.end_date || null,
     };
 
     try {
+      const token = localStorage.getItem("token");
       if (editId !== null) {
-        await TransactionService.updateTransaction(editId, tx); // Update transaction
+        await TransactionService.updateTransaction(editId, tx, token);
         toast.success("Transaction updated");
       } else {
-        await TransactionService.addTransaction(tx); // Add new transaction
+        await TransactionService.addTransaction(tx, token);
         toast.success("Transaction added");
       }
-
-      setTxs(await TransactionService.getTransactions()); // Refresh transactions
+      setTxs(await TransactionService.getTransactions(token));
       setSubmitting(false);
-      setEditId(null); // Reset edit state
-      formikRef.current?.resetForm(); // Reset form
+      setEditId(null);
+      formikRef.current?.resetForm();
     } catch (err) {
-      setErrors({ general: "An error occurred while saving the transaction." });
-      toast.error("Transaction failed");
+      let errorMessage = "An error occurred while saving the transaction.";
+      try {
+        const errorData = JSON.parse(err.message);
+        if (errorData.errors) {
+          errorMessage = Object.values(errorData.errors).flat().join(", ");
+        } else if (errorData.error) {
+          errorMessage = errorData.error;
+        }
+      } catch (parseError) {
+        console.error("Error parsing response:", parseError);
+      }
+      setErrors({ general: errorMessage });
+      toast.error(errorMessage);
       setSubmitting(false);
     }
   };
@@ -63,19 +83,21 @@ export default function Transactions() {
     setEditId(tx.id);
     if (formikRef.current) {
       formikRef.current.setValues({
-        title: tx.title,
+        title: tx.payee || "",
         amount: tx.amount,
         date: tx.date,
-        category: tx.category,
-        walletId: tx.walletId || "",
+        category_id: tx.category_id,
+        walletId: tx.account_id,
+        type: tx.type,
       });
     }
   };
 
   const handleDelete = async (id) => {
     try {
-      await TransactionService.deleteTransaction(id); // Delete transaction
-      setTxs(await TransactionService.getTransactions()); // Refresh transactions
+      const token = localStorage.getItem("token");
+      await TransactionService.deleteTransaction(id, token);
+      setTxs(await TransactionService.getTransactions(token));
       toast.success("Transaction deleted");
     } catch (error) {
       console.error("Error deleting transaction:", error);
@@ -86,7 +108,9 @@ export default function Transactions() {
   return (
     <div className="min-h-screen bg-gray-100 py-10 px-4">
       <div className="max-w-3xl mx-auto bg-white p-6 rounded-xl shadow-md">
-        <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">Manage Transactions</h1>
+        <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">
+          Manage Transactions
+        </h1>
 
         <Formik
           innerRef={(ref) => (formikRef.current = ref)}
@@ -94,13 +118,21 @@ export default function Transactions() {
             title: "",
             amount: "",
             date: "",
-            category: "",
+            category_id: "",
             walletId: "",
+            type: "",
           }}
           validationSchema={transactionSchema}
           onSubmit={handleSubmit}
         >
-          {({ isSubmitting, values, handleChange, handleBlur, errors, touched }) => (
+          {({
+            isSubmitting,
+            values,
+            handleChange,
+            handleBlur,
+            errors,
+            touched,
+          }) => (
             <Form className="grid gap-4 mb-10">
               <div>
                 <label className="block text-sm font-medium mb-1">Title</label>
@@ -108,10 +140,18 @@ export default function Transactions() {
                   name="title"
                   value={values.title}
                   onChange={handleChange}
-                  className={`w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.title && touched.title ? 'border-red-500' : 'border-gray-300 focus:ring focus:border-green-400'}`}
+                  className={`w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.title && touched.title
+                      ? "border-red-500"
+                      : "border-gray-300 focus:ring focus:border-green-400"
+                  }`}
                   placeholder="e.g. Grocery shopping"
                 />
-                <ErrorMessage name="title" component="p" className="text-red-500 text-sm mt-1" />
+                <ErrorMessage
+                  name="title"
+                  component="p"
+                  className="text-red-500 text-sm mt-1"
+                />
               </div>
 
               <div>
@@ -121,10 +161,18 @@ export default function Transactions() {
                   value={values.amount}
                   onChange={handleChange}
                   type="text"
-                  className={`w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.amount && touched.amount ? 'border-red-500' : 'border-gray-300 focus:ring focus:border-green-400'}`}
+                  className={`w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.amount && touched.amount
+                      ? "border-red-500"
+                      : "border-gray-300 focus:ring focus:border-green-400"
+                  }`}
                   placeholder="e.g. 50"
                 />
-                <ErrorMessage name="amount" component="p" className="text-red-500 text-sm mt-1" />
+                <ErrorMessage
+                  name="amount"
+                  component="p"
+                  className="text-red-500 text-sm mt-1"
+                />
               </div>
 
               <div>
@@ -134,43 +182,138 @@ export default function Transactions() {
                   value={values.date}
                   onChange={handleChange}
                   type="date"
-                  className={`w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.date && touched.date ? 'border-red-500' : 'border-gray-300 focus:ring focus:border-green-400'}`}
+                  className={`w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.date && touched.date
+                      ? "border-red-500"
+                      : "border-gray-300 focus:ring focus:border-green-400"
+                  }`}
                 />
-                <ErrorMessage name="date" component="p" className="text-red-500 text-sm mt-1" />
+                <ErrorMessage
+                  name="date"
+                  component="p"
+                  className="text-red-500 text-sm mt-1"
+                />
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">Category</label>
+                <label className="block text-sm font-medium mb-1">
+                  Category
+                </label>
                 <Field
-                  name="category"
+                  name="category_id" // Change to category_id
                   as="select"
-                  value={values.category}
-                  onChange={handleChange}
-                  className={`w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.category && touched.category ? 'border-red-500' : 'border-gray-300 focus:ring focus:border-green-400'}`}
+                  className={`w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.category_id && touched.category_id
+                      ? "border-red-500"
+                      : "border-gray-300 focus:ring focus:border-green-400"
+                  }`}
                 >
                   <option value="">-- Select a category --</option>
                   {categories.map((cat) => (
-                    <option key={cat} value={cat}>{cat}</option>
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
                   ))}
                 </Field>
-                <ErrorMessage name="category" component="p" className="text-red-500 text-sm mt-1" />
+                <ErrorMessage
+                  name="category_id"
+                  component="p"
+                  className="text-red-500 text-sm mt-1"
+                />
               </div>
 
               <div>
-                <label htmlFor="" className="block text-sm font-medium mb-1">Wallet</label>
+                <label className="block text-sm font-medium mb-1">Type</label>
+                <Field
+                  name="type"
+                  as="select"
+                  className={`w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.type && touched.type
+                      ? "border-red-500"
+                      : "border-gray-300 focus:ring focus:border-green-400"
+                  }`}
+                >
+                  <option value="">-- Select type --</option>
+                  <option value="income">Income</option>
+                  <option value="expense">Expense</option>
+                </Field>
+                <ErrorMessage
+                  name="type"
+                  component="p"
+                  className="text-red-500 text-sm mt-1"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="" className="block text-sm font-medium mb-1">
+                  Wallet
+                </label>
                 <Field
                   name="walletId"
                   as="select"
                   value={values.walletId}
                   onChange={handleChange}
-                  className={`w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.walletId && touched.walletId ? 'border-red-500' : 'border-gray-300 focus:ring focus:border-green-400'}`}
+                  className={`w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.walletId && touched.walletId
+                      ? "border-red-500"
+                      : "border-gray-300 focus:ring focus:border-green-400"
+                  }`}
                 >
                   <option value="">-- Select a Wallet --</option>
                   {wallets.map((wallet) => (
-                    <option key={wallet.id} value={wallet.id}>{wallet.name}</option>
+                    <option key={wallet.id} value={wallet.id}>
+                      {wallet.name}
+                    </option>
                   ))}
                 </Field>
-                <ErrorMessage name="walletId" component="p" className="text-red-500 text-sm mt-1" />
+                <ErrorMessage
+                  name="walletId"
+                  component="p"
+                  className="text-red-500 text-sm mt-1"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Frequency
+                </label>
+                <Field
+                  name="frequency"
+                  as="select"
+                  className={`w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.frequency && touched.frequency
+                      ? "border-red-500"
+                      : "border-gray-300 focus:ring focus:border-green-400"
+                  }`}
+                >
+                  <option value="">-- Select frequency --</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                </Field>
+                <ErrorMessage
+                  name="frequency"
+                  component="p"
+                  className="text-red-500 text-sm mt-1"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  End Date
+                </label>
+                <Field
+                  name="end_date"
+                  type="date"
+                  className={`w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.end_date && touched.end_date
+                      ? "border-red-500"
+                      : "border-gray-300 focus:ring focus:border-green-400"
+                  }`}
+                />
+                <ErrorMessage
+                  name="end_date"
+                  component="p"
+                  className="text-red-500 text-sm mt-1"
+                />
               </div>
 
               <button
@@ -184,41 +327,13 @@ export default function Transactions() {
           )}
         </Formik>
 
-        <h2 className="text-xl font-semibold text-gray-700 mb-4">Your Transactions</h2>
-
-        <div className="space-y-4">
-          {txs.map((tx) => (
-            <div key={tx.id} className="p-4 bg-white border-l-4 border-blue-500 shadow rounded-lg flex justify-between items-center">
-              <div>
-                <h3 className="font-semibold text-lg">{tx.title}</h3>
-                <p className="text-gray-600 text-sm">
-                  {tx.category} | {new Date(tx.date).toLocaleDateString()}<br />
-                  Wallet: <span className="font-medium">
-                    {wallets.find((w) => w.id === tx.walletId)?.name || "N/A"}
-                  </span>
-                </p>
-              </div>
-              <div className="flex items-center gap-4">
-                <span className="text-green-600 font-bold">${tx.amount}</span>
-                <button
-                  onClick={() => handleEdit(tx)}
-                  className="text-blue-500 hover:underline text-sm cursor-pointer flex items-center gap-1"
-                >
-                  <PencilSquareIcon className="h-5 w-5" />
-                  Edit
-                </button>
-
-                <button
-                  onClick={() => handleDelete(tx.id)}
-                  className="text-red-500 hover:underline text-sm cursor-pointer flex items-center gap-1"
-                >
-                  <TrashIcon className="h-5 w-5" />
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
+        <TransactionsSection
+          txs={txs}
+          wallets={wallets}
+          categories={categories}
+          handleEdit={handleEdit}
+          handleDelete={handleDelete}
+        />
       </div>
       <Toaster />
     </div>
