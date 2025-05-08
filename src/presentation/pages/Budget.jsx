@@ -50,16 +50,20 @@ export default function Budget() {
     if (!token) return navigate("/login");
   
     createBudget(newBudget, token)
-      .then((data) => {
-        // بعد إضافة الميزانية بنجاح، نقوم بجلب البيانات من الخادم لتحديث القائمة
-        getBudgets(token)
-          .then((newBudgets) => {
-            setBudgets(newBudgets); // تحديث القائمة
-            resetForm(); // إعادة تعيين النموذج
-          })
-          .catch(() => setError("Error fetching budgets"));
-      })
-      .catch(() => setError("Error creating budget"));
+    .then((data) => {
+      toast.success("Budget created successfully");
+      getBudgets(token)
+        .then((newBudgets) => {
+          setBudgets(newBudgets);
+          resetForm();
+        })
+        .catch(() => setError("Error fetching budgets"));
+    })
+    .catch(() => {
+      toast.error("Error creating budget");
+      setError("Error creating budget");
+    });
+  
   };
 
   const handleEditBudget = (budget) => {
@@ -74,27 +78,36 @@ export default function Budget() {
     if (!token) return navigate("/login");
   
     updateBudget(editBudget.id, newBudget, token)
-      .then((data) => {
-        // بعد تعديل الميزانية بنجاح، نقوم بجلب البيانات من الخادم لتحديث القائمة
-        getBudgets(token)
-          .then((newBudgets) => {
-            setBudgets(newBudgets); // تحديث القائمة
-            resetForm(); // إعادة تعيين النموذج
-          })
-          .catch(() => setError("Error fetching budgets"));
-      })
-      .catch(() => setError("Error updating budget"));
+    .then((data) => {
+      toast.success("Budget updated successfully");
+      getBudgets(token)
+        .then((newBudgets) => {
+          setBudgets(newBudgets);
+          resetForm();
+          setIsFormOpen(false);
+        })
+        .catch(() => setError("Error fetching budgets"));
+    })
+    .catch(() => {
+      toast.error("Error updating budget");
+      setError("Error updating budget");
+    });
+  
   };
   
-
   const handleDeleteBudget = (id) => {
     if (!token) return navigate("/login");
 
-    deleteBudget(id, token)
-      .then(() => {
-        setBudgets(budgets.filter((b) => b.id !== id));
-      })
-      .catch(() => setError("Error deleting budget"));
+ deleteBudget(id, token)
+  .then(() => {
+    toast.success("Budget deleted successfully");
+    setBudgets(budgets.filter((b) => b.id !== id));
+  })
+  .catch(() => {
+    toast.error("Error deleting budget");
+    setError("Error deleting budget");
+  });
+
   };
 
   const resetForm = () => {
@@ -120,7 +133,6 @@ export default function Budget() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
-              <Toaster />
 
         <div className="flex flex-col items-center">
           <RefreshCw className="w-10 h-10 text-blue-600 animate-spin" />
@@ -129,6 +141,8 @@ export default function Budget() {
       </div>
     );
   }
+
+
 
   if (error) {
     return (
@@ -142,6 +156,8 @@ export default function Budget() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6 rtl">
+          <Toaster position="top-center" reverseOrder={false} />
+
       <div className="max-w-6xl mx-auto">
         {/* Header with Summary */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
@@ -149,7 +165,7 @@ export default function Budget() {
             <h1 className="text-2xl font-bold text-gray-800 mb-4 md:mb-0">Budget Management</h1>
             <button
               onClick={() => setIsFormOpen(!isFormOpen)}
-              className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all"
+              className="flex cursor-pointer items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all"
             >
               <PlusCircle className="w-5 h-5 ml-2" />
               {isFormOpen ? "Close Form" : "Add New Budget"}
@@ -186,13 +202,13 @@ export default function Budget() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Category Name</label>
                 <div className="relative">
                   <Tag className="absolute right-3 top-3 text-gray-500" size={18} />
-                  <input
-                    type="text"
-                    value={newBudget.category_name}
-                    onChange={(e) => setNewBudget({ ...newBudget, category_name: e.target.value })}
-                    placeholder="Example: Salary, Rent"
-                    className="border border-gray-300 rounded-lg p-2 pr-10 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
-                  />
+                <input
+  type="text"
+  value={newBudget.category_name}
+  onChange={(e) => setNewBudget({ ...newBudget, category_name: e.target.value })}
+  placeholder="Example: Salary, Rent"
+  className="border border-gray-300 rounded-lg p-2 pr-10 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+/>
                 </div>
               </div>
               
@@ -265,21 +281,21 @@ export default function Budget() {
             <div className="mt-6 flex justify-end gap-3">
               <button 
                 onClick={resetForm} 
-                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-all"
+                className="px-4 py-2  cursor-pointer bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-all"
               >
                 Cancel
               </button>
               {editMode ? (
                 <button 
                   onClick={handleUpdateBudget} 
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all"
+                  className="px-4 py-2 bg-blue-600  cursor-pointer text-white rounded-lg hover:bg-blue-700 transition-all"
                 >
                   Update
                 </button>
               ) : (
                 <button 
                   onClick={handleCreateBudget} 
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all"
+                  className="px-4 py-2 bg-green-600  text-white rounded-lg hover:bg-green-700 transition-all"
                 >
                   Create
                 </button>
@@ -332,13 +348,13 @@ export default function Budget() {
                     <div className="mt-4 flex justify-end gap-2">
                       <button 
                         onClick={() => handleEditBudget(budget)} 
-                        className="p-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-all"
+                        className="p-2 bg-yellow-500  cursor-pointer text-white rounded hover:bg-yellow-600 transition-all"
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button 
                         onClick={() => handleDeleteBudget(budget.id)} 
-                        className="p-2 bg-red-500 text-white rounded hover:bg-red-600 transition-all"
+                        className="p-2   cursor-pointer bg-red-500 text-white rounded hover:bg-red-600 transition-all"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>

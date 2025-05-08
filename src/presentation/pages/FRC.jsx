@@ -25,7 +25,6 @@ export default function BudgetForecastDashboard() {
           'Content-Type': 'application/json',
         }
       });
-      
       if (!response.ok) {
         throw new Error(`API request failed with status ${response.status}`);
       }
@@ -63,6 +62,9 @@ export default function BudgetForecastDashboard() {
   };
 
   const balanceChange = getBalanceChange();
+  
+  console.log('forecastData:', forecastData);
+
 
   return (
     <div className="min-h-screen bg-gray-100">

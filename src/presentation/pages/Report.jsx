@@ -72,29 +72,29 @@ export default function ReportPage() {
     }
   })
 
-  const handleDownloadPDF = () => {
-    const input = reportRef.current
-    if (!input) return
+  // const handleDownloadPDF = () => {
+  //   const input = reportRef.current
+  //   if (!input) return
   
-    // نمنع تأثيرات الألوان الحديثة
-    input.style.colorScheme = 'light'
-    input.style.filter = 'none'
+  //   // نمنع تأثيرات الألوان الحديثة
+  //   input.style.colorScheme = 'light'
+  //   input.style.filter = 'none'
   
-    html2canvas(input, {
-      backgroundColor: '#ffffff', // تأكد إن الخلفية بيضاء
-      useCORS: true,
-      logging: true,
-    }).then((canvas) => {
-      const imgData = canvas.toDataURL('image/png')
-      const pdf = new jsPDF()
-      const pdfWidth = pdf.internal.pageSize.getWidth()
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight)
-      pdf.save('wallet-report.pdf')
-    }).catch((err) => {
-      console.error('PDF generation error:', err)
-    })
-  }
+  //   html2canvas(input, {
+  //     backgroundColor: '#ffffff', // تأكد إن الخلفية بيضاء
+  //     useCORS: true,
+  //     logging: true,
+  //   }).then((canvas) => {
+  //     const imgData = canvas.toDataURL('image/png')
+  //     const pdf = new jsPDF()
+  //     const pdfWidth = pdf.internal.pageSize.getWidth()
+  //     const pdfHeight = (canvas.height * pdfWidth) / canvas.width
+  //     pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight)
+  //     pdf.save('wallet-report.pdf')
+  //   }).catch((err) => {
+  //     console.error('PDF generation error:', err)
+  //   })
+  // }
 
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-6">
@@ -164,14 +164,14 @@ export default function ReportPage() {
         </div>
       </div>
 
-      <div className="mt-8 text-center">
+      {/* <div className="mt-8 text-center">
         <button
           onClick={handleDownloadPDF}
           className="bg-blue-600 text-white px-6 py-2 rounded-lg shadow hover:bg-blue-700 transition"
         >
           Download PDF
         </button>
-      </div>
+      </div> */}
     </div>
   )
 }
