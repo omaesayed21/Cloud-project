@@ -37,14 +37,13 @@ export default function Budget() {
       .catch(() => setError("Error loading data"))
       .finally(() => setLoading(false));
 
-  //   axios.get("http://127.0.0.1:8000/api/forecast", {
-  //     headers: {
-  //       Authorization: `Bearer ${token}`,
-  //     },
-  //   })
-  //   .then((res) => setForecast(res.data))
-  //   .catch(() => setForecast(null));
-  // }, [navigate, token]);
+    axios.get("http://127.0.0.1:8000/api/forecast", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+    .then((res) => setForecast(res.data))
+    .catch(() => setForecast(null));
   }, [navigate, token]);
 
   const handleCreateBudget = () => {
@@ -351,7 +350,7 @@ export default function Budget() {
           )}
         </div>
       </div>
-{/* {forecast ? (
+{forecast ? (
   <div className="bg-white rounded-xl shadow-lg p-6 mt-6">
     <h2 className="text-xl font-bold mb-4 text-gray-800 border-b pb-2">Forecast</h2>
 
@@ -374,7 +373,7 @@ export default function Budget() {
   <div className="bg-white rounded-xl shadow-lg p-6 mt-6">
     <p className="text-center text-gray-500">No forecast data available</p>
   </div>
-)} */}
+)}
 
 
     </div>

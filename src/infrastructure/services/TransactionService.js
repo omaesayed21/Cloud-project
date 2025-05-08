@@ -1,7 +1,7 @@
 const BASE_URL = "http://127.0.0.1:8000/api/transactions";
 
 export const TransactionService = {
-  async getTransactions(token) {
+   async getTransactions(token) {
     const res = await fetch(BASE_URL, {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -65,3 +65,4 @@ export const TransactionService = {
     return res.ok;
   },
 };
+

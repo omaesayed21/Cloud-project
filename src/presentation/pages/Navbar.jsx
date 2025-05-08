@@ -24,6 +24,7 @@ export default function Navbar() {
           <li><Link to="/Trnsactions" className="hover:text-green-600">Transactions</Link></li>
           <li><Link to="/Budget" className="hover:text-green-600">Budget</Link></li>
           <li><Link to="/reports" className="hover:text-green-600">Reports</Link></li>
+          <li><Link to="/forecast" className="hover:text-green-600">Forecast</Link></li>
         </ul>
 
         <button
